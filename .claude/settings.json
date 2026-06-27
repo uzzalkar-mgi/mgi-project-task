@@ -24,7 +24,9 @@
       "Bash(npm uninstall *)",
       "Bash(node -e \"console.log\\('plugin-react:', require\\('./package.json'\\).devDependencies['@vitejs/plugin-react']\\)\")",
       "Bash(find src *)",
-      "Bash(ls \"src/app/\\(app\\)\")"
+      "Bash(ls \"src/app/\\(app\\)\")",
+      "Bash(git -c user.name=\"uzzal.kar\" -c user.email=\"uzzal.kar@mgi.org\" commit -q -m \"docs: project README for PTS\")",
+      "Bash(echo \"pushed: $?\")"
     ]
   }
 }

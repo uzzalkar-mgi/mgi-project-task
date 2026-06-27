@@ -2,6 +2,7 @@ import { Card, PageHeader, Badge } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import { SearchInput } from '@/Components/ui/SearchInput';
 import { StatusToggle } from '@/Components/ui/StatusToggle';
+import { StatusActionButton } from '@/Components/ui/StatusActionButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Head, Link, router } from '@inertiajs/react';
@@ -61,11 +62,20 @@ export default function Index({ roles }) {
                                 <td className="px-4 py-3 text-slate-500">{r.users_count}</td>
                                 <td className="px-4 py-3 text-slate-500">{r.is_super ? 'All' : r.permissions_count}</td>
                                 <td className="px-4 py-3"><StatusToggle active={r.status === 1} url={route('roles.status', r.id)} canToggle={can('roles.update')} /></td>
-                                <td className="px-4 py-3 text-right">
-                                    {can('roles.update') && <Link href={route('roles.edit', r.id)} className="text-sm font-medium text-brand-600 hover:underline">Edit</Link>}
-                                    {can('roles.delete') && !CORE.includes(r.code) && (
-                                        <button onClick={() => remove(r)} className="ml-3 text-sm font-medium text-rose-500 hover:underline">Delete</button>
-                                    )}
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center justify-end gap-2">
+                                        {can('roles.update') && (
+                                            <Link href={route('roles.edit', r.id)} className="flex items-center gap-1 rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50">
+                                                <Icon name="edit" className="h-3.5 w-3.5" /> Edit
+                                            </Link>
+                                        )}
+                                        {can('roles.update') && <StatusActionButton active={r.status === 1} url={route('roles.status', r.id)} name={r.name} />}
+                                        {can('roles.delete') && !CORE.includes(r.code) && (
+                                            <button onClick={() => remove(r)} className="flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50">
+                                                <Icon name="trash" className="h-3.5 w-3.5" /> Delete
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}

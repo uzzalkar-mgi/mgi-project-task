@@ -99,14 +99,20 @@ export default function Index({ users, filters, canManage }) {
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Link href={route('users.show', u.uuid)} className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">View</Link>
-                                            {can('users.update') && <Link href={route('users.edit', u.uuid)} className="rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50">Edit</Link>}
+                                            <Link href={route('users.show', u.uuid)} className="flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                                                <Icon name="eye" className="h-3.5 w-3.5" /> View
+                                            </Link>
+                                            {can('users.update') && (
+                                                <Link href={route('users.edit', u.uuid)} className="flex items-center gap-1 rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50">
+                                                    <Icon name="edit" className="h-3.5 w-3.5" /> Edit
+                                                </Link>
+                                            )}
                                             {can('users.update') && (
                                                 <button
                                                     onClick={() => toggleStatus(u)}
-                                                    className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${u.status === 1 ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}
+                                                    className={`flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition ${u.status === 1 ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}
                                                 >
-                                                    {u.status === 1 ? 'Deactivate' : 'Activate'}
+                                                    <Icon name="power" className="h-3.5 w-3.5" /> {u.status === 1 ? 'Deactivate' : 'Activate'}
                                                 </button>
                                             )}
                                         </div>

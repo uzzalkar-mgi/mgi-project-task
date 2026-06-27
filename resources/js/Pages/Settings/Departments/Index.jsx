@@ -2,6 +2,7 @@ import { Card, PageHeader, Badge } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import { SearchInput } from '@/Components/ui/SearchInput';
 import { StatusToggle } from '@/Components/ui/StatusToggle';
+import { StatusActionButton } from '@/Components/ui/StatusActionButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Head, router, useForm } from '@inertiajs/react';
@@ -63,9 +64,12 @@ export default function Index({ departments }) {
                                 <td className="px-4 py-3 text-slate-500">{d.designations_count}</td>
                                 <td className="px-4 py-3 text-slate-500">{d.users_count}</td>
                                 <td className="px-4 py-3"><StatusToggle active={d.status === 1} url={route('departments.status', d.id)} canToggle={can('departments.update')} /></td>
-                                <td className="px-4 py-3 text-right">
-                                    {can('departments.update') && <button onClick={() => open(d)} className="text-sm font-medium text-brand-600 hover:underline">Edit</button>}
-                                    {can('departments.delete') && <button onClick={() => remove(d)} className="ml-3 text-sm font-medium text-rose-500 hover:underline">Delete</button>}
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center justify-end gap-2">
+                                        {can('departments.update') && <button onClick={() => open(d)} className="flex items-center gap-1 rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><Icon name="edit" className="h-3.5 w-3.5" /> Edit</button>}
+                                        {can('departments.update') && <StatusActionButton active={d.status === 1} url={route('departments.status', d.id)} name={d.name} />}
+                                        {can('departments.delete') && <button onClick={() => remove(d)} className="flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50"><Icon name="trash" className="h-3.5 w-3.5" /> Delete</button>}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
