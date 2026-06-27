@@ -20,9 +20,15 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user()->load(['department:id,name', 'designation:id,name']);
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
+            'status'          => session('status'),
+            'department'      => $user->department?->name,
+            'designation'     => $user->designation?->name,
+            'departments'     => \App\Models\Department::active()->orderBy('name')->get(['id', 'name']),
+            'designations'    => \App\Models\Designation::active()->orderBy('name')->get(['id', 'name', 'department_id']),
         ]);
     }
 

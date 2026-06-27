@@ -70,7 +70,7 @@ function AvatarUpload({ user, name }) {
     );
 }
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({ mustVerifyEmail, status, department, designation, departments, designations }) {
     const user = usePage().props.auth.user;
     const { roles } = usePermissions();
     const role = roles?.[0] ? roles[0].charAt(0).toUpperCase() + roles[0].slice(1) : 'Member';
@@ -120,6 +120,8 @@ export default function Edit({ mustVerifyEmail, status }) {
                         <InfoRow icon="team" label="Role" value={role} />
                         <InfoRow icon="bell" label="Email" value={user?.email} />
                         <InfoRow icon="projects" label="Office Contact" value={user?.office_contact} />
+                        <InfoRow icon="team" label="Department" value={department} />
+                        <InfoRow icon="milestones" label="Designation" value={designation} />
                     </div>
                 </Card>
 
@@ -146,7 +148,7 @@ export default function Edit({ mustVerifyEmail, status }) {
                     </div>
 
                     <div className={tab === 'personal' ? '' : 'hidden'}>
-                        <UpdateProfileInformationForm mustVerifyEmail={mustVerifyEmail} status={status} className="max-w-xl" />
+                        <UpdateProfileInformationForm mustVerifyEmail={mustVerifyEmail} status={status} departments={departments} designations={designations} className="max-w-3xl" />
                     </div>
                     <div className={tab === 'password' ? '' : 'hidden'}>
                         <UpdatePasswordForm className="max-w-xl" />

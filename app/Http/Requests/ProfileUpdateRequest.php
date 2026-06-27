@@ -32,6 +32,8 @@ class ProfileUpdateRequest extends FormRequest
                 'max:30',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'department_id'  => ['nullable', 'exists:departments,id'],
+            'designation_id' => ['nullable', 'exists:designations,id'],
         ];
     }
 }

@@ -1,10 +1,13 @@
 import { Icon } from '@/Components/ui/Icon';
+import { Combobox } from '@/Components/ui/Combobox';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
     status,
+    departments = [],
+    designations = [],
     className = '',
 }) {
     const user = usePage().props.auth.user;
@@ -14,7 +17,14 @@ export default function UpdateProfileInformation({
             name: user.name,
             email: user.email,
             office_contact: user.office_contact ?? '',
+            department_id: user.department_id ?? '',
+            designation_id: user.designation_id ?? '',
         });
+
+    const deptOpts = departments.map((d) => ({ value: d.id, label: d.name }));
+    const desigOpts = designations
+        .filter((d) => !data.department_id || !d.department_id || String(d.department_id) === String(data.department_id))
+        .map((d) => ({ value: d.id, label: d.name }));
 
     const submit = (e) => {
         e.preventDefault();
@@ -36,6 +46,7 @@ export default function UpdateProfileInformation({
             </header>
 
             <form onSubmit={submit} className="mt-5 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {/* Name */}
                 <div>
                     <label htmlFor="name" className="mb-1.5 block text-sm font-semibold text-slate-700">
@@ -102,6 +113,21 @@ export default function UpdateProfileInformation({
                     </div>
                     {errors.office_contact && <p className="mt-1.5 text-sm text-rose-500">{errors.office_contact}</p>}
                 </div>
+
+                {/* Department */}
+                <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Department</label>
+                    <Combobox options={deptOpts} value={data.department_id} onChange={(v) => { setData('department_id', v); setData('designation_id', ''); }} placeholder="Select department…" />
+                    {errors.department_id && <p className="mt-1.5 text-sm text-rose-500">{errors.department_id}</p>}
+                </div>
+
+                {/* Designation */}
+                <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-slate-700">Designation</label>
+                    <Combobox options={desigOpts} value={data.designation_id} onChange={(v) => setData('designation_id', v)} placeholder="Select designation…" />
+                    {errors.designation_id && <p className="mt-1.5 text-sm text-rose-500">{errors.designation_id}</p>}
+                </div>
+              </div>
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
