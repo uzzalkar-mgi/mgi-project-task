@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AppNotification;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -39,6 +40,18 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user ? $user->permissionNames() : [],
                 'roles' => $user ? $user->roles->pluck('code') : [],
             ],
+            'notifications' => fn () => $user ? [
+                'unread' => AppNotification::where('user_id', $user->id)->where('is_read', false)->count(),
+                'items'  => AppNotification::where('user_id', $user->id)->latest()->limit(15)->get()
+                    ->map(fn (AppNotification $n) => [
+                        'id'         => $n->id,
+                        'type'       => $n->type,
+                        'message'    => $n->message,
+                        'link'       => $n->data['link'] ?? null,
+                        'is_read'    => $n->is_read,
+                        'created_at' => $n->created_at?->diffForHumans(),
+                    ]),
+            ] : ['unread' => 0, 'items' => []],
         ];
     }
 }

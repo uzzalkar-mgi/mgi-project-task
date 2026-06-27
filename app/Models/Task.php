@@ -30,9 +30,10 @@ class Task extends Model
     ];
 
     protected $casts = [
-        'start_date'      => 'date',
-        'due_date'        => 'date',
-        'estimated_hours' => 'decimal:2',
+        'start_date'         => 'date',
+        'due_date'           => 'date',
+        'estimated_hours'    => 'decimal:2',
+        'overdue_alerted_at' => 'datetime',
     ];
 
     // ---- Relationships ---------------------------------------------------

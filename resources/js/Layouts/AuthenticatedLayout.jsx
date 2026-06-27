@@ -1,7 +1,7 @@
 import { Icon } from '@/Components/ui/Icon';
 import { usePermissions } from '@/hooks/usePermissions';
 import { MENU, hrefFor, isActive } from '@/menu';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 function initials(name = '') {
@@ -87,7 +87,9 @@ function SidebarNav({ onNavigate }) {
 }
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const page = usePage();
+    const user = page.props.auth.user;
+    const notifications = page.props.notifications ?? { unread: 0, items: [] };
     const { roles } = usePermissions();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [panel, setPanel] = useState(null); // 'bell' | 'profile' | null
@@ -95,6 +97,20 @@ export default function AuthenticatedLayout({ header, children }) {
     const toggle = (p) => setPanel((cur) => (cur === p ? null : p));
     const close = () => setPanel(null);
     const roleLabel = roles?.[0] ? roles[0].charAt(0).toUpperCase() + roles[0].slice(1) : 'Member';
+
+    // Open bell -> mark all read (so the counter clears once viewed).
+    const openBell = () => {
+        const opening = panel !== 'bell';
+        toggle('bell');
+        if (opening && notifications.unread > 0) {
+            router.patch(route('notifications.readAll'), {}, { preserveScroll: true, preserveState: false, only: ['notifications'] });
+        }
+    };
+    const openNotification = (n) => {
+        close();
+        if (!n.is_read) router.patch(route('notifications.read', n.id), {}, { preserveScroll: true, only: ['notifications'] });
+        if (n.link) router.visit(n.link);
+    };
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -112,15 +128,42 @@ export default function AuthenticatedLayout({ header, children }) {
                 <div className="relative z-40 ml-auto flex items-center gap-1">
                     {/* Notifications */}
                     <div className="relative">
-                        <button onClick={() => toggle('bell')} className="relative rounded p-2 hover:bg-white/10">
+                        <button onClick={openBell} className="relative rounded p-2 hover:bg-white/10">
                             <Icon name="bell" className="h-5 w-5" />
+                            {notifications.unread > 0 && (
+                                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                                    {notifications.unread > 9 ? '9+' : notifications.unread}
+                                </span>
+                            )}
                         </button>
                         {panel === 'bell' && (
                             <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] overflow-hidden rounded-lg bg-white text-slate-700 shadow-xl ring-1 ring-black/5">
-                                <div className="border-b border-slate-100 px-4 py-2.5">
+                                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
                                     <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
+                                    {notifications.unread > 0 && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600">{notifications.unread} new</span>}
                                 </div>
-                                <p className="px-4 py-6 text-center text-sm text-slate-400">No notifications.</p>
+                                <div className="max-h-96 divide-y divide-slate-50 overflow-y-auto">
+                                    {notifications.items.length === 0 ? (
+                                        <p className="px-4 py-6 text-center text-sm text-slate-400">No notifications.</p>
+                                    ) : (
+                                        notifications.items.map((n) => (
+                                            <button
+                                                key={n.id}
+                                                onClick={() => openNotification(n)}
+                                                className={`flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50 ${n.is_read ? '' : 'bg-brand-50/50'}`}
+                                            >
+                                                <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${n.is_read ? 'bg-slate-100 text-slate-400' : 'bg-brand-100 text-brand-700'}`}>
+                                                    <Icon name="bell" className="h-4 w-4" />
+                                                </span>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className={`text-sm ${n.is_read ? 'text-slate-600' : 'font-semibold text-slate-900'}`}>{n.message}</p>
+                                                    <p className="text-xs text-slate-400">{n.created_at}</p>
+                                                </div>
+                                                {!n.is_read && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-500" />}
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>

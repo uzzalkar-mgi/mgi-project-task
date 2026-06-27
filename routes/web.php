@@ -5,6 +5,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
@@ -36,6 +37,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline.index');
     Route::get('/milestones', [MilestoneController::class, 'index'])->name('milestones.index');
+
+    Route::patch('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
 
     // Team / user administration.
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
