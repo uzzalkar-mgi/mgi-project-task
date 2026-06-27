@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -p Project_Tracking_System_PRD.docx word/document.xml)",
+      "Bash(composer -V)",
+      "Bash(psql --version)",
+      "Bash(mkdir -p docs)",
+      "Bash(mv Project_Tracking_System_PRD.docx docs/)",
+      "Bash(cat app/Models/Setup/Role.php)",
+      "Bash(cat app/Models/Setup/Permission.php)",
+      "Bash(cat app/Models/Concerns/HasStatus.php)",
+      "Bash(cat app/Models/Image.php)",
+      "Read(//c/laragon/bin/**)",
+      "Read(//d/laragon/bin/**)",
+      "Read(//c//**)",
+      "Read(//d/laragon/**)",
+      "Bash(where psql *)",
+      "Read(//c/laragon/**)",
+      "Read(//d/laragon/bin//**)",
+      "Bash(php -m)",
+      "Bash(netstat -ano)",
+      "Bash(php -r ' *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(JSON.stringify\\({vite:p.devDependencies.vite,react:p.devDependencies['@vitejs/plugin-react'],oxc:p.devDependencies['@vitejs/plugin-react-oxc']},null,1\\)\\)\")",
+      "Bash(npm uninstall *)",
+      "Bash(node -e \"console.log\\('plugin-react:', require\\('./package.json'\\).devDependencies['@vitejs/plugin-react']\\)\")",
+      "Bash(find src *)",
+      "Bash(ls \"src/app/\\(app\\)\")"
+    ]
+  }
+}

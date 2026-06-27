@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+    font-family: var(--font-sans);
+}
+
+/* @tailwindcss/forms styles type-less inputs (input:where(:not([type]))) with a
+   1px gray border / square radius. Our combobox + tag-input fields use type-less
+   inputs inside a styled wrapper, so strip those defaults. */
+input:where(:not([type])) {
+    border-width: 0;
+    border-radius: 0;
+    --tw-ring-shadow: 0 0 #0000;
+    box-shadow: none;
+}
+
+/* Rich text (rendered task notes / comments) */
+.rich {
+    @apply text-sm leading-relaxed text-slate-700;
+}
+.rich p { @apply my-1.5; }
+.rich h1 { @apply my-2 text-xl font-bold text-slate-900; }
+.rich h2 { @apply my-2 text-lg font-semibold text-slate-900; }
+.rich strong { @apply font-semibold text-slate-900; }
+.rich ul { @apply my-1.5 list-disc pl-5; }
+.rich ol { @apply my-1.5 list-decimal pl-5; }
+.rich blockquote { @apply my-2 border-l-4 border-brand-200 pl-3 italic text-slate-600; }
+.rich a { @apply text-brand-600 underline; }
+
+/* Thin scrollbar for sidebars / panels */
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }

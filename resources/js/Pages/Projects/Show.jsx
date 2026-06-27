@@ -1,0 +1,97 @@
+import { Card, PageHeader, Badge, SectionTitle } from '@/Components/ui/Primitives';
+import { Icon } from '@/Components/ui/Icon';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Head, Link } from '@inertiajs/react';
+
+const STATUS_TONE = { active: 'green', on_hold: 'amber', completed: 'blue', cancelled: 'red' };
+const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
+const TASK_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' };
+const PRIORITY_TONE = { urgent: 'red', critical: 'red', high: 'amber', normal: 'blue', medium: 'blue', low: 'slate' };
+
+function fmt(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function Meta({ icon, label, value }) {
+    return (
+        <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
+                <Icon name={icon} className="h-4 w-4" />
+            </span>
+            <div>
+                <p className="text-xs text-slate-400">{label}</p>
+                <p className="text-sm font-medium text-slate-800">{value || '—'}</p>
+            </div>
+        </div>
+    );
+}
+
+export default function Show({ project }) {
+    return (
+        <AuthenticatedLayout
+            header={
+                <PageHeader
+                    title={project.name}
+                    subtitle={project.description || 'No description.'}
+                    actions={<Link href={route('projects.index')} className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back</Link>}
+                />
+            }
+        >
+            <Head title={project.name} />
+
+            <div className="grid gap-6 lg:grid-cols-3">
+                {/* Overview */}
+                <Card className="p-5 lg:col-span-1">
+                    <div className="mb-4 flex items-center gap-2">
+                        <Badge tone={STATUS_TONE[project.status] ?? 'slate'}>{project.status}</Badge>
+                        <Badge tone={PRIORITY_TONE[project.priority] ?? 'slate'}>{project.priority}</Badge>
+                    </div>
+                    <div className="space-y-3">
+                        <Meta icon="user" label="Project Lead" value={project.lead} />
+                        <Meta icon="team" label="Primary Responsible" value={project.primary} />
+                        <Meta icon="team" label="Secondary Responsible" value={project.secondary} />
+                        <Meta icon="timeline" label="Start" value={fmt(project.start_date)} />
+                        <Meta icon="timeline" label="End" value={fmt(project.end_date)} />
+                    </div>
+                    {project.tags.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                            {project.tags.map((t) => <span key={t} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">#{t}</span>)}
+                        </div>
+                    )}
+                    {project.members.length > 0 && (
+                        <div className="mt-4 border-t border-slate-100 pt-4">
+                            <p className="mb-2 text-xs font-medium text-slate-500">Team Members</p>
+                            <div className="flex flex-wrap gap-2">
+                                {project.members.map((m) => <span key={m} className="rounded-full bg-brand-50 px-2 py-0.5 text-xs text-brand-700">{m}</span>)}
+                            </div>
+                        </div>
+                    )}
+                </Card>
+
+                {/* Tasks */}
+                <Card className="p-5 lg:col-span-2">
+                    <SectionTitle>Tasks ({project.tasks.length})</SectionTitle>
+                    {project.tasks.length === 0 ? (
+                        <p className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">No tasks yet.</p>
+                    ) : (
+                        <ul className="divide-y divide-slate-100">
+                            {project.tasks.map((t) => (
+                                <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium text-slate-800">{t.title}</p>
+                                        <p className="truncate text-xs text-slate-400">{t.assignees.join(', ') || 'Unassigned'} · due {fmt(t.due_date)}</p>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        <Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge>
+                                        <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+            </div>
+        </AuthenticatedLayout>
+    );
+}
