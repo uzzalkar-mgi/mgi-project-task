@@ -2,7 +2,7 @@ import { Card, SectionTitle, Badge } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
@@ -11,6 +11,15 @@ import UpdateProfileInformationForm from './Partials/UpdateProfileInformationFor
 function initials(name = '') {
     return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || '?';
 }
+
+function fmt(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
+const TASK_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' };
+const PROJ_TONE = { active: 'green', on_hold: 'amber', completed: 'blue', cancelled: 'red' };
 
 function InfoRow({ icon, label, value }) {
     return (
@@ -70,7 +79,10 @@ function AvatarUpload({ user, name }) {
     );
 }
 
-export default function Edit({ mustVerifyEmail, status, department, designation, departments, designations }) {
+export default function Edit({
+    mustVerifyEmail, status, department, designation, departments, designations,
+    ledProjects = [], memberProjects = [], tasks = [], createdTasks = [],
+}) {
     const user = usePage().props.auth.user;
     const { roles } = usePermissions();
     const role = roles?.[0] ? roles[0].charAt(0).toUpperCase() + roles[0].slice(1) : 'Member';
@@ -78,7 +90,14 @@ export default function Edit({ mustVerifyEmail, status, department, designation,
         ? new Date(user.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
         : '—';
 
-    const [tab, setTab] = useState('personal'); // 'personal' | 'password'
+    const [tab, setTab] = useState('personal'); // 'personal' | 'password' | 'project' | 'tasks'
+
+    const tabs = [
+        { key: 'personal', label: 'Personal Information' },
+        { key: 'password', label: 'Password' },
+        { key: 'project', label: 'Project' },
+        { key: 'tasks', label: 'Tasks' },
+    ];
 
     return (
         <AuthenticatedLayout header={<h2 className="text-xl font-bold text-slate-900">My Profile</h2>}>
@@ -125,18 +144,15 @@ export default function Edit({ mustVerifyEmail, status, department, designation,
                     </div>
                 </Card>
 
-                {/* Tabs: Personal Information | Password */}
+                {/* Tabs: Personal Information | Password | Project | Tasks */}
                 <Card className="p-5">
-                    <div className="mb-5 flex gap-1 border-b border-slate-100">
-                        {[
-                            { key: 'personal', label: 'Personal Information' },
-                            { key: 'password', label: 'Password' },
-                        ].map((t) => (
+                    <div className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-100">
+                        {tabs.map((t) => (
                             <button
                                 key={t.key}
                                 type="button"
                                 onClick={() => setTab(t.key)}
-                                className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
+                                className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition ${
                                     tab === t.key
                                         ? 'border-brand-600 text-brand-700'
                                         : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -147,11 +163,107 @@ export default function Edit({ mustVerifyEmail, status, department, designation,
                         ))}
                     </div>
 
+                    {/* Personal Information tab */}
                     <div className={tab === 'personal' ? '' : 'hidden'}>
                         <UpdateProfileInformationForm mustVerifyEmail={mustVerifyEmail} status={status} departments={departments} designations={designations} className="max-w-3xl" />
                     </div>
+
+                    {/* Password tab */}
                     <div className={tab === 'password' ? '' : 'hidden'}>
                         <UpdatePasswordForm className="max-w-xl" />
+                    </div>
+
+                    {/* Project tab */}
+                    <div className={tab === 'project' ? '' : 'hidden'}>
+                        <SectionTitle>My Projects ({ledProjects.length + memberProjects.filter((m) => !ledProjects.some((l) => l.uuid === m.uuid)).length})</SectionTitle>
+                        {ledProjects.length === 0 && memberProjects.length === 0 ? (
+                            <p className="text-sm text-slate-400">Not part of any project.</p>
+                        ) : (
+                            <div className="max-h-[500px] overflow-y-auto overflow-x-auto">
+                                <div className="space-y-2 min-w-[400px]">
+                                    {ledProjects.map((p) => (
+                                        <Link key={`l${p.uuid}`} href={route('projects.show', p.uuid)} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 hover:bg-slate-50">
+                                            <span className="text-sm font-medium text-slate-800">{p.name}</span>
+                                            <span className="flex items-center gap-2"><Badge tone="blue">Lead</Badge><Badge tone={PROJ_TONE[p.status] ?? 'slate'}>{p.status}</Badge></span>
+                                        </Link>
+                                    ))}
+                                    {memberProjects.filter((m) => !ledProjects.some((l) => l.uuid === m.uuid)).map((p) => (
+                                        <Link key={`m${p.uuid}`} href={route('projects.show', p.uuid)} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 hover:bg-slate-50">
+                                            <span className="text-sm font-medium text-slate-800">{p.name}</span>
+                                            <span className="flex items-center gap-2"><Badge tone="slate">Member</Badge><Badge tone={PROJ_TONE[p.status] ?? 'slate'}>{p.status}</Badge></span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Tasks tab */}
+                    <div className={tab === 'tasks' ? '' : 'hidden'}>
+                        {/* Assigned Tasks */}
+                        <div className="mb-6">
+                            <SectionTitle>Assigned Tasks ({tasks.length})</SectionTitle>
+                            {tasks.length === 0 ? (
+                                <p className="text-sm text-slate-400">No tasks assigned.</p>
+                            ) : (
+                                <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
+                                    <ul className="divide-y divide-slate-100 min-w-[500px]">
+                                        {tasks.map((t) => (
+                                            <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
+                                                <div className="min-w-0">
+                                                    <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
+                                                    <p className="truncate text-xs text-slate-400">
+                                                        {t.project} · due {fmt(t.due_date)}
+                                                        {t.created_by && (
+                                                            <> · created by {t.created_by_uuid
+                                                                ? <Link href={route('users.show', t.created_by_uuid)} className="font-medium text-slate-500 hover:text-brand-600">{t.created_by}</Link>
+                                                                : <span className="font-medium text-slate-500">{t.created_by}</span>
+                                                            }</>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Created Tasks (grouped by project) */}
+                        <div>
+                            <SectionTitle>Created Tasks ({createdTasks.reduce((n, g) => n + g.tasks.length, 0)})</SectionTitle>
+                            {createdTasks.length === 0 ? (
+                                <p className="text-sm text-slate-400">You haven't created any tasks.</p>
+                            ) : (
+                                <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
+                                    <div className="space-y-4 min-w-[500px]">
+                                        {createdTasks.map((g) => (
+                                            <div key={g.project}>
+                                                <div className="mb-1 flex items-center gap-2">
+                                                    <Icon name="projects" className="h-4 w-4 text-slate-400" />
+                                                    {g.project_uuid
+                                                        ? <Link href={route('projects.show', g.project_uuid)} className="text-sm font-semibold text-slate-800 hover:text-brand-700">{g.project}</Link>
+                                                        : <span className="text-sm font-semibold text-slate-800">{g.project}</span>}
+                                                    <Badge tone="slate">{g.tasks.length}</Badge>
+                                                </div>
+                                                <ul className="divide-y divide-slate-50 border-l-2 border-slate-100 pl-3">
+                                                    {g.tasks.map((t) => (
+                                                        <li key={t.uuid} className="flex items-center justify-between gap-3 py-2">
+                                                            <Link href={route('tasks.show', t.uuid)} className="min-w-0 truncate text-sm text-slate-700 hover:text-brand-700">{t.title}</Link>
+                                                            <div className="flex shrink-0 items-center gap-2">
+                                                                <span className="text-xs text-slate-400">{fmt(t.due_date)}</span>
+                                                                <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </Card>
 

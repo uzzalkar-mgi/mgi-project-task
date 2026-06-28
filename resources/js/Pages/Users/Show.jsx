@@ -103,25 +103,27 @@ export default function Show({ user, ledProjects, memberProjects, tasks, created
                         {tasks.length === 0 ? (
                             <p className="text-sm text-slate-400">No tasks assigned.</p>
                         ) : (
-                            <ul className="divide-y divide-slate-100">
-                                {tasks.map((t) => (
-                                    <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
-                                        <div className="min-w-0">
-                                            <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
-                                            <p className="truncate text-xs text-slate-400">
-                                                {t.project} · due {fmt(t.due_date)}
-                                                {t.created_by && (
-                                                    <> · created by {t.created_by_uuid
-                                                        ? <Link href={route('users.show', t.created_by_uuid)} className="font-medium text-slate-500 hover:text-brand-600">{t.created_by}</Link>
-                                                        : <span className="font-medium text-slate-500">{t.created_by}</span>
-                                                    }</>
-                                                )}
-                                            </p>
-                                        </div>
-                                        <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
-                                    </li>
-                                ))}
-                            </ul>
+                            <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
+                                <ul className="divide-y divide-slate-100 min-w-[500px]">
+                                    {tasks.map((t) => (
+                                        <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
+                                            <div className="min-w-0">
+                                                <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
+                                                <p className="truncate text-xs text-slate-400">
+                                                    {t.project} · due {fmt(t.due_date)}
+                                                    {t.created_by && (
+                                                        <> · created by {t.created_by_uuid
+                                                            ? <Link href={route('users.show', t.created_by_uuid)} className="font-medium text-slate-500 hover:text-brand-600">{t.created_by}</Link>
+                                                            : <span className="font-medium text-slate-500">{t.created_by}</span>
+                                                        }</>
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         )}
                     </Card>
 
@@ -131,29 +133,31 @@ export default function Show({ user, ledProjects, memberProjects, tasks, created
                         {createdTasks.length === 0 ? (
                             <p className="text-sm text-slate-400">This user hasn't created any tasks.</p>
                         ) : (
-                            <div className="space-y-4">
-                                {createdTasks.map((g) => (
-                                    <div key={g.project}>
-                                        <div className="mb-1 flex items-center gap-2">
-                                            <Icon name="projects" className="h-4 w-4 text-slate-400" />
-                                            {g.project_uuid
-                                                ? <Link href={route('projects.show', g.project_uuid)} className="text-sm font-semibold text-slate-800 hover:text-brand-700">{g.project}</Link>
-                                                : <span className="text-sm font-semibold text-slate-800">{g.project}</span>}
-                                            <Badge tone="slate">{g.tasks.length}</Badge>
+                            <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
+                                <div className="space-y-4 min-w-[500px]">
+                                    {createdTasks.map((g) => (
+                                        <div key={g.project}>
+                                            <div className="mb-1 flex items-center gap-2">
+                                                <Icon name="projects" className="h-4 w-4 text-slate-400" />
+                                                {g.project_uuid
+                                                    ? <Link href={route('projects.show', g.project_uuid)} className="text-sm font-semibold text-slate-800 hover:text-brand-700">{g.project}</Link>
+                                                    : <span className="text-sm font-semibold text-slate-800">{g.project}</span>}
+                                                <Badge tone="slate">{g.tasks.length}</Badge>
+                                            </div>
+                                            <ul className="divide-y divide-slate-50 border-l-2 border-slate-100 pl-3">
+                                                {g.tasks.map((t) => (
+                                                    <li key={t.uuid} className="flex items-center justify-between gap-3 py-2">
+                                                        <Link href={route('tasks.show', t.uuid)} className="min-w-0 truncate text-sm text-slate-700 hover:text-brand-700">{t.title}</Link>
+                                                        <div className="flex shrink-0 items-center gap-2">
+                                                            <span className="text-xs text-slate-400">{fmt(t.due_date)}</span>
+                                                            <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
-                                        <ul className="divide-y divide-slate-50 border-l-2 border-slate-100 pl-3">
-                                            {g.tasks.map((t) => (
-                                                <li key={t.uuid} className="flex items-center justify-between gap-3 py-2">
-                                                    <Link href={route('tasks.show', t.uuid)} className="min-w-0 truncate text-sm text-slate-700 hover:text-brand-700">{t.title}</Link>
-                                                    <div className="flex shrink-0 items-center gap-2">
-                                                        <span className="text-xs text-slate-400">{fmt(t.due_date)}</span>
-                                                        <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </Card>

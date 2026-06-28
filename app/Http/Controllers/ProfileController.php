@@ -20,7 +20,12 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
-        $user = $request->user()->load(['department:id,name', 'designation:id,name']);
+        $user = $request->user()->load([
+            'department:id,name', 'designation:id,name',
+            'ledProjects:id,uuid,name,status,priority,end_date',
+            'projects:id,uuid,name,status',
+            'tasks' => fn ($q) => $q->with(['project:id,name', 'reporter:id,uuid,name'])->orderBy('due_date'),
+        ]);
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
@@ -29,6 +34,31 @@ class ProfileController extends Controller
             'designation'     => $user->designation?->name,
             'departments'     => \App\Models\Department::active()->orderBy('name')->get(['id', 'name']),
             'designations'    => \App\Models\Designation::active()->orderBy('name')->get(['id', 'name']),
+            'ledProjects'     => $user->ledProjects->map(fn ($p) => [
+                'uuid' => $p->uuid, 'name' => $p->name, 'status' => $p->status, 'priority' => $p->priority,
+            ]),
+            'memberProjects'  => $user->projects->map(fn ($p) => [
+                'uuid' => $p->uuid, 'name' => $p->name, 'status' => $p->status,
+            ]),
+            'tasks'           => $user->tasks->map(fn ($t) => [
+                'uuid' => $t->uuid, 'title' => $t->title, 'project' => $t->project?->name,
+                'status' => $t->status, 'priority' => $t->priority, 'due_date' => $t->due_date?->toDateString(),
+                'created_by' => $t->reporter?->name,
+                'created_by_uuid' => $t->reporter?->uuid,
+            ]),
+            'createdTasks'    => \App\Models\Task::where('reporter_id', $user->id)
+                ->with('project:id,uuid,name')
+                ->orderBy('due_date')
+                ->get()
+                ->groupBy(fn ($t) => $t->project?->name ?? 'No project')
+                ->map(fn ($group, $name) => [
+                    'project'      => $name,
+                    'project_uuid' => $group->first()->project?->uuid,
+                    'tasks'        => $group->map(fn ($t) => [
+                        'uuid' => $t->uuid, 'title' => $t->title, 'status' => $t->status,
+                        'priority' => $t->priority, 'due_date' => $t->due_date?->toDateString(),
+                    ])->values(),
+                ])->values(),
         ]);
     }
 
