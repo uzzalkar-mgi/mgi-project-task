@@ -2,6 +2,7 @@ import { Card, PageHeader, SectionTitle } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import { Combobox, MultiCombobox } from '@/Components/ui/Combobox';
 import { TagInput } from '@/Components/ui/TagInput';
+import { RichTextEditor } from '@/Components/ui/RichTextEditor';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
@@ -57,7 +58,7 @@ export default function Create({ users, tags }) {
                         </div>
                         <div className="sm:col-span-2">
                             <Field label="Description" error={errors.description}>
-                                <textarea rows={3} className={inputCls} value={data.description} onChange={(e) => setData('description', e.target.value)} />
+                                <RichTextEditor value={data.description} onChange={(html) => setData('description', html)} />
                             </Field>
                         </div>
                         <Field label="Start Date" required error={errors.start_date}>

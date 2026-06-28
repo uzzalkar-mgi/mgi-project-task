@@ -2,6 +2,7 @@ import { Card, PageHeader, Badge } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import { SearchInput } from '@/Components/ui/SearchInput';
 import { CommentModal } from '@/Components/ui/CommentModal';
+import { Countdown } from '@/Components/ui/Countdown';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
@@ -31,7 +32,11 @@ function shortTitle(title = '') {
 }
 
 function uploadAttachment(uuid, file) {
-    router.post(route('tasks.attachments.store', uuid), { file }, { forceFormData: true, preserveScroll: true });
+    const fd = new FormData();
+    fd.append('file', file);
+    window.axios.post(`/tasks/${uuid}/attachments`, fd, { headers: { Accept: 'application/json' } })
+        .then(() => router.reload({ only: ['tasks'] }))
+        .catch((err) => alert(err.response?.data?.message ?? 'Upload failed.'));
 }
 
 function CommentMeta({ t, onOpen }) {
@@ -70,9 +75,10 @@ function TaskCard({ t, draggable, onDragStart, onOpenComments }) {
             <p className="mt-1 truncate text-xs text-slate-400">{t.project}</p>
             <div className="mt-1"><Badge tone={PLATFORM_TONE[t.platform] ?? 'slate'}>{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></div>
             <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-                <span>{t.assignees.join(', ') || 'Unassigned'}</span>
+                <span className="truncate">{t.assignees.join(', ') || 'Unassigned'}</span>
                 <span>{fmt(t.due_date)}</span>
             </div>
+            <div className="mt-1.5"><Countdown dueDate={t.due_date} status={t.status} completedAt={t.completed_at} /></div>
             <div className="mt-2 flex items-center gap-3 border-t border-slate-50 pt-2">
                 <span className="flex items-center gap-1 text-xs text-slate-400">
                     <Icon name="projects" className="h-3.5 w-3.5" /> {t.attachments}
@@ -132,40 +138,82 @@ function Board({ tasks, onOpenComments }) {
     );
 }
 
-function List({ tasks, onOpenComments }) {
+function TaskTable({ tasks, onOpenComments, showProject = true }) {
     return (
-        <Card className="overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                    <thead className="border-b border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        <tr>
-                            <th className="px-4 py-3">Task</th>
-                            <th className="px-4 py-3">Project</th>
-                            <th className="px-4 py-3">Platform</th>
-                            <th className="px-4 py-3">Assignees</th>
-                            <th className="px-4 py-3">Priority</th>
-                            <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">Comments</th>
-                            <th className="px-4 py-3">Due</th>
+        <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+                <thead className="border-y border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    <tr>
+                        <th className="px-4 py-3">Task</th>
+                        {showProject && <th className="px-4 py-3">Project</th>}
+                        <th className="px-4 py-3">Platform</th>
+                        <th className="px-4 py-3">Assignees</th>
+                        <th className="px-4 py-3">Priority</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Countdown</th>
+                        <th className="px-4 py-3">Comments</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                    {tasks.map((t) => (
+                        <tr key={t.uuid} onClick={() => router.visit(route('tasks.show', t.uuid))} className="cursor-pointer hover:bg-slate-50">
+                            <td className="px-4 py-3 font-medium text-slate-800 hover:text-brand-700" title={t.title}>
+                                {shortTitle(t.title)} {t.is_new && <span className="ml-1 rounded bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700">NEW</span>}
+                            </td>
+                            {showProject && <td className="px-4 py-3 text-slate-500">{t.project}</td>}
+                            <td className="px-4 py-3"><Badge tone={PLATFORM_TONE[t.platform] ?? 'slate'}>{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></td>
+                            <td className="px-4 py-3 text-slate-500">{t.assignees.join(', ') || '—'}</td>
+                            <td className="px-4 py-3"><Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge></td>
+                            <td className="px-4 py-3"><Badge tone={TASK_TONE[t.status] ?? 'slate'}>{COLUMNS.find((c) => c.key === t.status)?.label ?? t.status}</Badge></td>
+                            <td className="px-4 py-3"><Countdown dueDate={t.due_date} status={t.status} completedAt={t.completed_at} /></td>
+                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><CommentMeta t={t} onOpen={onOpenComments} /></td>
                         </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {tasks.map((t) => (
-                            <tr key={t.uuid} onClick={() => router.visit(route('tasks.show', t.uuid))} className="cursor-pointer hover:bg-slate-50">
-                                <td className="px-4 py-3 font-medium text-slate-800 hover:text-brand-700" title={t.title}>{shortTitle(t.title)}</td>
-                                <td className="px-4 py-3 text-slate-500">{t.project}</td>
-                                <td className="px-4 py-3"><Badge tone={PLATFORM_TONE[t.platform] ?? 'slate'}>{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></td>
-                                <td className="px-4 py-3 text-slate-500">{t.assignees.join(', ') || '—'}</td>
-                                <td className="px-4 py-3"><Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge></td>
-                                <td className="px-4 py-3"><Badge tone={TASK_TONE[t.status] ?? 'slate'}>{COLUMNS.find((c) => c.key === t.status)?.label ?? t.status}</Badge></td>
-                                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><CommentMeta t={t} onOpen={onOpenComments} /></td>
-                                <td className="px-4 py-3 text-slate-500">{fmt(t.due_date)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </Card>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function List({ tasks, onOpenComments }) {
+    const newTasks = tasks.filter((t) => t.is_new);
+
+    // Group all tasks by project (preserve first-seen order).
+    const groups = [];
+    const idx = {};
+    tasks.forEach((t) => {
+        const key = t.project_uuid ?? '—';
+        if (idx[key] === undefined) { idx[key] = groups.length; groups.push({ name: t.project ?? 'No project', tasks: [] }); }
+        groups[idx[key]].tasks.push(t);
+    });
+
+    return (
+        <div className="space-y-6">
+            {/* Top: newly added tasks across all projects (mixed). */}
+            {newTasks.length > 0 && (
+                <Card className="overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 pt-4">
+                        <Icon name="tasks" className="h-4 w-4 text-brand-600" />
+                        <h3 className="text-sm font-semibold text-slate-900">New Tasks</h3>
+                        <Badge tone="blue">{newTasks.length}</Badge>
+                        <span className="text-xs text-slate-400">· added in the last 7 days</span>
+                    </div>
+                    <TaskTable tasks={newTasks} onOpenComments={onOpenComments} />
+                </Card>
+            )}
+
+            {/* Project-wise sections. */}
+            {groups.map((g) => (
+                <Card key={g.name} className="overflow-hidden">
+                    <div className="flex items-center gap-2 px-4 pt-4">
+                        <Icon name="projects" className="h-4 w-4 text-slate-500" />
+                        <h3 className="text-sm font-semibold text-slate-900">{g.name}</h3>
+                        <Badge tone="slate">{g.tasks.length}</Badge>
+                    </div>
+                    <TaskTable tasks={g.tasks} onOpenComments={onOpenComments} showProject={false} />
+                </Card>
+            ))}
+        </div>
     );
 }
 

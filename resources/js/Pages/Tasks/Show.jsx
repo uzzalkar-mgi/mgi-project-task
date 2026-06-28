@@ -1,11 +1,13 @@
 import { Card, PageHeader, Badge, SectionTitle } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
+import { Countdown } from '@/Components/ui/Countdown';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 
 const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
 const TASK_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' };
+const STATUS_OPTS = [['todo', 'To Do'], ['in_progress', 'In Progress'], ['under_review', 'Under Review'], ['done', 'Done'], ['blocked', 'Blocked']];
 const PRIORITY_TONE = { urgent: 'red', high: 'amber', normal: 'blue', low: 'slate' };
 
 function fmt(d) {
@@ -109,7 +111,10 @@ function CommentItem({ c, taskUuid, isReply }) {
     );
 }
 
-export default function Show({ task, comments }) {
+export default function Show({ task, comments, canChangeStatus }) {
+    const changeStatus = (status) => {
+        if (status !== task.status) router.patch(route('tasks.status', task.uuid), { status }, { preserveScroll: true });
+    };
     return (
         <AuthenticatedLayout
             header={
@@ -130,9 +135,28 @@ export default function Show({ task, comments }) {
                         <Badge tone={PRIORITY_TONE[task.priority] ?? 'slate'}>{task.priority}</Badge>
                         <Badge tone={{ web: 'blue', android: 'green', both: 'amber' }[task.platform] ?? 'slate'}>{{ web: 'Web', android: 'Android', both: 'Web+Android' }[task.platform] ?? task.platform}</Badge>
                     </div>
+                    <div className="mb-4"><Countdown dueDate={task.due_date} status={task.status} completedAt={task.completed_at} /></div>
                     <p className="whitespace-pre-wrap text-sm text-slate-600">{task.description || 'No description.'}</p>
+
+                    {/* Status update */}
+                    <div className="mt-4 border-t border-slate-100 pt-4">
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Update Status</label>
+                        {canChangeStatus ? (
+                            <select
+                                value={task.status}
+                                onChange={(e) => changeStatus(e.target.value)}
+                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                            >
+                                {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                            </select>
+                        ) : (
+                            <p className="text-xs text-slate-400">Only assignees can change the status.</p>
+                        )}
+                    </div>
+
                     <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
                         <div className="flex justify-between"><span className="text-slate-400">Due</span><span className="font-medium text-slate-700">{fmt(task.due_date)}</span></div>
+                        {task.completed_at && <div className="flex justify-between"><span className="text-slate-400">Completed</span><span className="font-medium text-emerald-600">{fmt(task.completed_at)}</span></div>}
                         <div className="flex justify-between"><span className="text-slate-400">Reporter</span><span className="font-medium text-slate-700">{task.reporter ?? '—'}</span></div>
                         <div className="flex justify-between"><span className="text-slate-400">Assignees</span><span className="font-medium text-slate-700">{task.assignees.join(', ') || '—'}</span></div>
                     </div>

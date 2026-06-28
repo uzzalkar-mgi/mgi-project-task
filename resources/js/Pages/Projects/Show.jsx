@@ -34,7 +34,7 @@ export default function Show({ project }) {
             header={
                 <PageHeader
                     title={project.name}
-                    subtitle={project.description || 'No description.'}
+                    subtitle="Project details"
                     actions={<Link href={route('projects.index')} className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back</Link>}
                 />
             }
@@ -48,6 +48,9 @@ export default function Show({ project }) {
                         <Badge tone={STATUS_TONE[project.status] ?? 'slate'}>{project.status}</Badge>
                         <Badge tone={PRIORITY_TONE[project.priority] ?? 'slate'}>{project.priority}</Badge>
                     </div>
+                    {project.description
+                        ? <div className="rich mb-4 border-b border-slate-100 pb-4" dangerouslySetInnerHTML={{ __html: project.description }} />
+                        : <p className="mb-4 border-b border-slate-100 pb-4 text-sm text-slate-400">No description.</p>}
                     <div className="space-y-3">
                         <Meta icon="user" label="Project Lead" value={project.lead} />
                         <Meta icon="team" label="Primary Responsible" value={project.primary} />

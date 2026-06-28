@@ -51,10 +51,14 @@ class TaskController extends Controller
             'uuid'        => $t->uuid,
             'title'       => $t->title,
             'project'     => $t->project?->name,
+            'project_uuid' => $t->project?->uuid,
             'status'      => $t->status,
             'priority'    => $t->priority,
             'platform'    => $t->platform,
             'due_date'    => $t->due_date?->toDateString(),
+            'completed_at' => $t->completed_at?->toDateTimeString(),
+            'created_at'  => $t->created_at?->toIso8601String(),
+            'is_new'      => $t->created_at && $t->created_at->gt(now()->subDays(7)),
             'assignees'   => $t->assignees->pluck('name'),
             'attachments' => $t->attachments_count,
             'comments'    => $t->comments_count,
@@ -133,12 +137,14 @@ class TaskController extends Controller
                 'priority'    => $task->priority,
                 'platform'    => $task->platform,
                 'due_date'    => $task->due_date?->toDateString(),
+                'completed_at' => $task->completed_at?->toDateTimeString(),
                 'project'     => $task->project?->name,
                 'project_uuid' => $task->project?->uuid,
                 'reporter'    => $task->reporter?->name,
                 'assignees'   => $task->assignees->pluck('name'),
             ],
             'comments' => $this->commentTree($task),
+            'canChangeStatus' => $this->canChangeStatus($user, $task),
         ]);
     }
 
@@ -225,20 +231,27 @@ class TaskController extends Controller
             'status' => ['required', 'in:todo,in_progress,under_review,done,blocked'],
         ]);
 
-        $task->update(['status' => $data['status']]);
+        $task->update([
+            'status'       => $data['status'],
+            'completed_at' => $data['status'] === 'done' ? ($task->completed_at ?? now()) : null,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'completed_at' => $task->completed_at?->toDateTimeString()]);
+        }
 
         return back();
     }
 
     /** Attachment upload by assignees (mgi-connect central attachments + pivot). */
-    public function uploadAttachment(Request $request, Task $task): RedirectResponse
+    public function uploadAttachment(Request $request, Task $task)
     {
         $task->loadMissing('assignees:id');
         abort_unless($this->visibleProjects($request->user())->whereKey($task->project_id)->exists(), 403);
         abort_unless($this->canModify($request->user(), $task), 403);
 
         $request->validate([
-            'file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
+            'file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
         ]);
 
         $path = $request->file('file')->store('task-attachments', 'public');
@@ -254,6 +267,10 @@ class TaskController extends Controller
         ]);
 
         $task->attachments()->attach($attachment->id);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
 
         return back()->with('status', 'Attachment uploaded.');
     }

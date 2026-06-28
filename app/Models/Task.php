@@ -34,6 +34,7 @@ class Task extends Model
         'due_date'           => 'date',
         'estimated_hours'    => 'decimal:2',
         'overdue_alerted_at' => 'datetime',
+        'completed_at'       => 'datetime',
     ];
 
     // ---- Relationships ---------------------------------------------------
