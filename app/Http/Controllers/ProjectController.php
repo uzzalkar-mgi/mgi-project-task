@@ -114,7 +114,7 @@ class ProjectController extends Controller
         $project->load([
             'lead:id,name', 'primaryResponsible:id,name', 'secondaryResponsible:id,name',
             'members:id,name', 'tags:id,name',
-            'tasks' => fn ($q) => $q->with('assignees:id,name')->orderBy('due_date'),
+            'tasks' => fn ($q) => $q->with(['assignees:id,name', 'attachments'])->orderBy('due_date'),
         ]);
 
         return Inertia::render('Projects/Show', [
@@ -138,6 +138,9 @@ class ProjectController extends Controller
                     'priority'  => $t->priority,
                     'due_date'  => $t->due_date?->toDateString(),
                     'assignees' => $t->assignees->pluck('name'),
+                    'attachments' => $t->attachments->map(fn ($a) => [
+                        'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+                    ]),
                 ]),
             ],
         ]);

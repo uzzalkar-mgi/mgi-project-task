@@ -1,5 +1,6 @@
 import { Card, PageHeader, Badge, SectionTitle } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
+import { AttachmentViewer } from '@/Components/ui/AttachmentViewer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
@@ -77,15 +78,25 @@ export default function Show({ project }) {
                     ) : (
                         <ul className="divide-y divide-slate-100">
                             {project.tasks.map((t) => (
-                                <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm font-medium text-slate-800">{t.title}</p>
-                                        <p className="truncate text-xs text-slate-400">{t.assignees.join(', ') || 'Unassigned'} · due {fmt(t.due_date)}</p>
+                                <li key={t.uuid} className="py-2.5">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
+                                            <p className="truncate text-xs text-slate-400">{t.assignees.join(', ') || 'Unassigned'} · due {fmt(t.due_date)}</p>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            <Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge>
+                                            <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                            <Link href={route('tasks.show', t.uuid)} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-50" title="View task">
+                                                <Icon name="eye" className="h-3.5 w-3.5" />
+                                            </Link>
+                                        </div>
                                     </div>
-                                    <div className="flex shrink-0 items-center gap-2">
-                                        <Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge>
-                                        <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
-                                    </div>
+                                    {t.attachments?.length > 0 && (
+                                        <div className="mt-2 pl-0.5">
+                                            <AttachmentViewer items={t.attachments} size="sm" />
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>

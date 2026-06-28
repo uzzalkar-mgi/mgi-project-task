@@ -38,7 +38,7 @@ class DatabaseSeeder extends Seeder
         );
         $employee->roles()->syncWithoutDetaching([$employeeRole->id]);
 
-        $this->call(EmployeeSeeder::class);
+        // $this->call(EmployeeSeeder::class);
         $this->call(DepartmentDesignationSeeder::class);
         $this->call(ProjectTaskSeeder::class);
     }
