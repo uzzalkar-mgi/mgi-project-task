@@ -32,11 +32,12 @@ function shortTitle(title = '') {
 }
 
 function uploadAttachment(uuid, file) {
-    const fd = new FormData();
-    fd.append('file', file);
-    window.axios.post(`/tasks/${uuid}/attachments`, fd, { headers: { Accept: 'application/json' } })
-        .then(() => router.reload({ only: ['tasks'] }))
-        .catch((err) => alert(err.response?.data?.message ?? 'Upload failed.'));
+    // Inertia handles the back()/302 redirect natively and reloads props.
+    router.post(route('tasks.attachments.store', uuid), { file }, {
+        forceFormData: true,
+        preserveScroll: true,
+        onError: (e) => alert(e.file ?? 'Upload failed.'),
+    });
 }
 
 function CommentMeta({ t, onOpen }) {
