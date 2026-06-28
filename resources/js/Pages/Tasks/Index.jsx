@@ -1,6 +1,7 @@
 import { Card, PageHeader, Badge } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import { SearchInput } from '@/Components/ui/SearchInput';
+import { CommentModal } from '@/Components/ui/CommentModal';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useRef, useState } from 'react';
@@ -16,6 +17,7 @@ const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', d
 const COL_ACCENT = { todo: 'border-t-slate-300', in_progress: 'border-t-brand-500', under_review: 'border-t-amber-500', done: 'border-t-emerald-500', blocked: 'border-t-rose-500' };
 const PRIORITY_TONE = { urgent: 'red', high: 'amber', normal: 'blue', low: 'slate' };
 const PLATFORM_LABEL = { web: 'Web', android: 'Android', both: 'Web+Android' };
+const PLATFORM_TONE = { web: 'blue', android: 'green', both: 'amber' };
 
 function fmt(d) {
     if (!d) return '—';
@@ -25,28 +27,33 @@ function fmt(d) {
 /** First two words of the title; append "..." when truncated. */
 function shortTitle(title = '') {
     const words = title.trim().split(/\s+/);
-    return words.length <= 2 ? title : words.slice(0, 2).join(' ') + ' .........';
+    return words.length <= 2 ? title : words.slice(0, 2).join(' ') + ' ....';
 }
 
 function uploadAttachment(uuid, file) {
     router.post(route('tasks.attachments.store', uuid), { file }, { forceFormData: true, preserveScroll: true });
 }
 
-function CommentMeta({ t }) {
+function CommentMeta({ t, onOpen }) {
     return (
-        <span className="flex items-center gap-1 text-xs text-slate-400" title={`${t.comments} comment(s)`}>
+        <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onOpen(t); }}
+            className="flex items-center gap-1 rounded text-xs text-slate-400 hover:text-brand-600"
+            title="View / add comments"
+        >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             {t.comments}
             {t.new_comments > 0 && (
-                <span className="ml-0.5 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{t.new_comments} new</span>
+                <span className="ml-0.5 h-2 w-2 rounded-full bg-rose-500" title={`${t.new_comments} new`} />
             )}
-        </span>
+        </button>
     );
 }
 
-function TaskCard({ t, draggable, onDragStart }) {
+function TaskCard({ t, draggable, onDragStart, onOpenComments }) {
     const fileRef = useRef();
     const go = () => router.visit(route('tasks.show', t.uuid));
     return (
@@ -61,21 +68,21 @@ function TaskCard({ t, draggable, onDragStart }) {
                 <Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge>
             </div>
             <p className="mt-1 truncate text-xs text-slate-400">{t.project}</p>
-            <div className="mt-1"><Badge tone="slate">{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></div>
+            <div className="mt-1"><Badge tone={PLATFORM_TONE[t.platform] ?? 'slate'}>{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></div>
             <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
                 <span>{t.assignees.join(', ') || 'Unassigned'}</span>
                 <span>{fmt(t.due_date)}</span>
             </div>
-            <div className="mt-2 flex items-center justify-between border-t border-slate-50 pt-2">
-                <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                        <Icon name="projects" className="h-3.5 w-3.5" /> {t.attachments}
-                    </span>
-                    <CommentMeta t={t} />
-                </div>
+            <div className="mt-2 flex items-center gap-3 border-t border-slate-50 pt-2">
+                <span className="flex items-center gap-1 text-xs text-slate-400">
+                    <Icon name="projects" className="h-3.5 w-3.5" /> {t.attachments}
+                </span>
+                <CommentMeta t={t} onOpen={onOpenComments} />
                 {t.can_modify && (
                     <>
-                        <button onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} className="text-xs font-medium text-brand-600 hover:underline">+ Attach</button>
+                        <button onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} title="Attach file" className="ml-auto flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+                            <Icon name="plus" className="h-3.5 w-3.5" /> Attach
+                        </button>
                         <input ref={fileRef} type="file" className="hidden" onClick={(e) => e.stopPropagation()} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) uploadAttachment(t.uuid, f); }} />
                     </>
                 )}
@@ -84,7 +91,7 @@ function TaskCard({ t, draggable, onDragStart }) {
     );
 }
 
-function Board({ tasks }) {
+function Board({ tasks, onOpenComments }) {
     const [dragId, setDragId] = useState(null);
     const [overCol, setOverCol] = useState(null);
 
@@ -115,7 +122,7 @@ function Board({ tasks }) {
                             <Badge tone={TASK_TONE[col.key]}>{items.length}</Badge>
                         </div>
                         <div className="space-y-2">
-                            {items.map((t) => <TaskCard key={t.uuid} t={t} draggable={t.can_change_status} onDragStart={onDragStart} />)}
+                            {items.map((t) => <TaskCard key={t.uuid} t={t} draggable={t.can_change_status} onDragStart={onDragStart} onOpenComments={onOpenComments} />)}
                             {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-slate-300">Drop here</p>}
                         </div>
                     </div>
@@ -125,7 +132,7 @@ function Board({ tasks }) {
     );
 }
 
-function List({ tasks }) {
+function List({ tasks, onOpenComments }) {
     return (
         <Card className="overflow-hidden">
             <div className="overflow-x-auto">
@@ -147,11 +154,11 @@ function List({ tasks }) {
                             <tr key={t.uuid} onClick={() => router.visit(route('tasks.show', t.uuid))} className="cursor-pointer hover:bg-slate-50">
                                 <td className="px-4 py-3 font-medium text-slate-800 hover:text-brand-700" title={t.title}>{shortTitle(t.title)}</td>
                                 <td className="px-4 py-3 text-slate-500">{t.project}</td>
-                                <td className="px-4 py-3"><Badge tone="slate">{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></td>
+                                <td className="px-4 py-3"><Badge tone={PLATFORM_TONE[t.platform] ?? 'slate'}>{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></td>
                                 <td className="px-4 py-3 text-slate-500">{t.assignees.join(', ') || '—'}</td>
                                 <td className="px-4 py-3"><Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge></td>
                                 <td className="px-4 py-3"><Badge tone={TASK_TONE[t.status] ?? 'slate'}>{COLUMNS.find((c) => c.key === t.status)?.label ?? t.status}</Badge></td>
-                                <td className="px-4 py-3"><CommentMeta t={t} /></td>
+                                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><CommentMeta t={t} onOpen={onOpenComments} /></td>
                                 <td className="px-4 py-3 text-slate-500">{fmt(t.due_date)}</td>
                             </tr>
                         ))}
@@ -165,7 +172,10 @@ function List({ tasks }) {
 export default function Index({ tasks, canCreate }) {
     const [view, setView] = useState('board');
     const [q, setQ] = useState('');
+    const [activeTask, setActiveTask] = useState(null); // task whose comments modal is open
     const shown = tasks.filter((t) => `${t.title} ${t.project} ${t.assignees.join(' ')}`.toLowerCase().includes(q.toLowerCase()));
+
+    const closeModal = () => { setActiveTask(null); router.reload({ only: ['tasks'] }); };
 
     return (
         <AuthenticatedLayout
@@ -200,9 +210,18 @@ export default function Index({ tasks, canCreate }) {
                     <p className="mt-1 text-sm text-slate-500">{canCreate ? 'Create your first task to get started.' : 'No tasks in your projects yet.'}</p>
                 </Card>
             ) : view === 'board' ? (
-                <Board tasks={shown} />
+                <Board tasks={shown} onOpenComments={setActiveTask} />
             ) : (
-                <List tasks={shown} />
+                <List tasks={shown} onOpenComments={setActiveTask} />
+            )}
+
+            {activeTask && (
+                <CommentModal
+                    taskUuid={activeTask.uuid}
+                    taskTitle={activeTask.title}
+                    onClose={closeModal}
+                    onPosted={() => router.reload({ only: ['tasks'] })}
+                />
             )}
         </AuthenticatedLayout>
     );

@@ -128,7 +128,7 @@ export default function Show({ task, comments }) {
                     <div className="mb-4 flex flex-wrap items-center gap-2">
                         <Badge tone={TASK_TONE[task.status] ?? 'slate'}>{TASK_LABEL[task.status] ?? task.status}</Badge>
                         <Badge tone={PRIORITY_TONE[task.priority] ?? 'slate'}>{task.priority}</Badge>
-                        <Badge tone="blue">{{ web: 'Web', android: 'Android', both: 'Web+Android' }[task.platform] ?? task.platform}</Badge>
+                        <Badge tone={{ web: 'blue', android: 'green', both: 'amber' }[task.platform] ?? 'slate'}>{{ web: 'Web', android: 'Android', both: 'Web+Android' }[task.platform] ?? task.platform}</Badge>
                     </div>
                     <p className="whitespace-pre-wrap text-sm text-slate-600">{task.description || 'No description.'}</p>
                     <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">

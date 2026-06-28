@@ -54,6 +54,10 @@ class CommentController extends Controller
             $comment->attachments()->attach($attachment->id);
         }
 
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
         return back()->with('status', 'Comment posted.');
     }
 

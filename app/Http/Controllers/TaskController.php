@@ -116,32 +116,13 @@ class TaskController extends Controller
         $user = $request->user();
         abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists(), 403);
 
-        // Mark this task as seen now (clears the "new comments" flag for this user).
-        DB::table('task_views')->updateOrInsert(
-            ['task_id' => $task->id, 'user_id' => $user->id],
-            ['last_viewed_at' => now()]
-        );
+        $this->recordView($task, $user);
 
         $task->load([
             'project:id,uuid,name',
             'assignees:id,name',
             'reporter:id,name',
-            'comments' => fn ($q) => $q->whereNull('parent_id')->with([
-                'author:id,name',
-                'attachments',
-                'replies' => fn ($r) => $r->with(['author:id,name', 'attachments'])->orderBy('created_at'),
-            ])->orderBy('created_at'),
         ]);
-
-        $mapComment = fn ($c) => [
-            'id'          => $c->id,
-            'body'        => $c->body,
-            'author'      => $c->author?->name,
-            'created_at'  => $c->created_at?->diffForHumans(),
-            'attachments' => $c->attachments->map(fn ($a) => [
-                'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
-            ]),
-        ];
 
         return Inertia::render('Tasks/Show', [
             'task' => [
@@ -157,11 +138,58 @@ class TaskController extends Controller
                 'reporter'    => $task->reporter?->name,
                 'assignees'   => $task->assignees->pluck('name'),
             ],
-            'comments' => $task->comments->map(fn ($c) => [
-                ...$mapComment($c),
-                'replies' => $c->replies->map($mapComment),
-            ]),
+            'comments' => $this->commentTree($task),
         ]);
+    }
+
+    /** JSON comment thread for the popup viewer on the tasks board. */
+    public function comments(Request $request, Task $task)
+    {
+        $user = $request->user();
+        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists(), 403);
+
+        $this->recordView($task, $user);
+
+        return response()->json([
+            'task'     => ['uuid' => $task->uuid, 'title' => $task->title],
+            'comments' => $this->commentTree($task),
+            'can_comment' => true,
+        ]);
+    }
+
+    private function recordView(Task $task, User $user): void
+    {
+        DB::table('task_views')->updateOrInsert(
+            ['task_id' => $task->id, 'user_id' => $user->id],
+            ['last_viewed_at' => now()]
+        );
+    }
+
+    /** Threaded comments (top-level + replies) with attachments. */
+    private function commentTree(Task $task): array
+    {
+        $task->load([
+            'comments' => fn ($q) => $q->whereNull('parent_id')->with([
+                'author:id,name',
+                'attachments',
+                'replies' => fn ($r) => $r->with(['author:id,name', 'attachments'])->orderBy('created_at'),
+            ])->orderBy('created_at'),
+        ]);
+
+        $map = fn ($c) => [
+            'id'          => $c->id,
+            'body'        => $c->body,
+            'author'      => $c->author?->name,
+            'created_at'  => $c->created_at?->diffForHumans(),
+            'attachments' => $c->attachments->map(fn ($a) => [
+                'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+            ]),
+        ];
+
+        return $task->comments->map(fn ($c) => [
+            ...$map($c),
+            'replies' => $c->replies->map($map),
+        ])->all();
     }
 
     /**

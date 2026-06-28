@@ -85,7 +85,7 @@ export default function Show({ project }) {
                                             <p className="truncate text-xs text-slate-400">{t.assignees.join(', ') || 'Unassigned'} · due {fmt(t.due_date)}</p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
-                                            <Badge tone="slate">{{ web: 'Web', android: 'Android', both: 'Web+Android' }[t.platform] ?? t.platform}</Badge>
+                                            <Badge tone={{ web: 'blue', android: 'green', both: 'amber' }[t.platform] ?? 'slate'}>{{ web: 'Web', android: 'Android', both: 'Web+Android' }[t.platform] ?? t.platform}</Badge>
                                             <Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge>
                                             <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
                                             <Link href={route('tasks.show', t.uuid)} className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-50" title="View task">
