@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // Minimum password length = 6 (applies wherever Password::defaults() is used).
+        Password::defaults(fn () => Password::min(6));
 
         // Super-admin bypasses every gate; otherwise resolve against role permissions.
         Gate::before(fn (User $user) => $user->isSuperAdmin() ? true : null);
