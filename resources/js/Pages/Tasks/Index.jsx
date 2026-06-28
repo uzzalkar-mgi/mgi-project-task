@@ -232,8 +232,16 @@ function List({ tasks, onOpenComments }) {
 export default function Index({ tasks, canCreate }) {
     const [view, setView] = useState('list');
     const [q, setQ] = useState('');
+    const [proj, setProj] = useState('all');
     const [activeTask, setActiveTask] = useState(null); // task whose comments modal is open
-    const shown = tasks.filter((t) => `${t.title} ${t.project} ${t.assignees.join(' ')}`.toLowerCase().includes(q.toLowerCase()));
+
+    // Unique projects for the board filter dropdown.
+    const projectOpts = [];
+    const seen = new Set();
+    tasks.forEach((t) => { if (t.project_uuid && !seen.has(t.project_uuid)) { seen.add(t.project_uuid); projectOpts.push({ uuid: t.project_uuid, name: t.project }); } });
+
+    let shown = tasks.filter((t) => `${t.title} ${t.project} ${t.assignees.join(' ')}`.toLowerCase().includes(q.toLowerCase()));
+    if (view === 'board' && proj !== 'all') shown = shown.filter((t) => t.project_uuid === proj);
 
     const closeModal = () => { setActiveTask(null); router.reload({ only: ['tasks'] }); };
 
@@ -246,6 +254,16 @@ export default function Index({ tasks, canCreate }) {
                     actions={
                         <div className="flex flex-wrap items-center gap-2">
                             <SearchInput value={q} onChange={setQ} placeholder="Search tasks…" />
+                            {view === 'board' && (
+                                <select
+                                    value={proj}
+                                    onChange={(e) => setProj(e.target.value)}
+                                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                                >
+                                    <option value="all">All Projects</option>
+                                    {projectOpts.map((p) => <option key={p.uuid} value={p.uuid}>{p.name}</option>)}
+                                </select>
+                            )}
                             <div className="flex overflow-hidden rounded-lg border border-slate-200">
                                 {['board', 'list'].map((v) => (
                                     <button key={v} onClick={() => setView(v)} className={`px-3 py-2 text-sm font-medium capitalize ${view === v ? 'bg-brand-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>{v}</button>

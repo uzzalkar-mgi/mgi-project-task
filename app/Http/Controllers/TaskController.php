@@ -7,6 +7,7 @@ use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,8 +98,11 @@ class TaskController extends Controller
             'status'          => ['required', 'in:todo,in_progress,under_review,done,blocked'],
             'platform'        => ['required', 'in:web,android,both'],
             'estimated_hours' => ['nullable', 'numeric', 'min:0'],
-            'assignee_ids'    => ['array'],
+            'assignee_ids'    => ['required', 'array', 'min:1'],
             'assignee_ids.*'  => ['exists:users,id'],
+        ], [
+            'assignee_ids.required' => 'Assign the task to at least one member.',
+            'assignee_ids.min'      => 'Assign the task to at least one member.',
         ]);
 
         // Can only attach a task to a project the user can access.
@@ -126,6 +130,7 @@ class TaskController extends Controller
             'project:id,uuid,name',
             'assignees:id,name',
             'reporter:id,name',
+            'attachments',
         ]);
 
         return Inertia::render('Tasks/Show', [
@@ -142,9 +147,13 @@ class TaskController extends Controller
                 'project_uuid' => $task->project?->uuid,
                 'reporter'    => $task->reporter?->name,
                 'assignees'   => $task->assignees->pluck('name'),
+                'attachments' => $task->attachments->map(fn ($a) => [
+                    'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+                ]),
             ],
             'comments' => $this->commentTree($task),
             'canChangeStatus' => $this->canChangeStatus($user, $task),
+            'canModify' => $this->canModify($user, $task),
         ]);
     }
 
@@ -221,7 +230,7 @@ class TaskController extends Controller
     }
 
     /** Drag-and-drop status change (assignees + managers). */
-    public function updateStatus(Request $request, Task $task): RedirectResponse
+    public function updateStatus(Request $request, Task $task): RedirectResponse|JsonResponse
     {
         $task->loadMissing('assignees:id');
         abort_unless($this->visibleProjects($request->user())->whereKey($task->project_id)->exists(), 403);
@@ -240,7 +249,7 @@ class TaskController extends Controller
             return response()->json(['ok' => true, 'completed_at' => $task->completed_at?->toDateTimeString()]);
         }
 
-        return back();
+        return back()->with('status', 'Task status updated.');
     }
 
     /** Attachment upload by assignees (mgi-connect central attachments + pivot). */

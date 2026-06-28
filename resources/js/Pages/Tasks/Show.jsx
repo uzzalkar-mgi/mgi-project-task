@@ -1,6 +1,7 @@
 import { Card, PageHeader, Badge, SectionTitle } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import { Countdown } from '@/Components/ui/Countdown';
+import { AttachmentViewer } from '@/Components/ui/AttachmentViewer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { useRef, useState } from 'react';
@@ -111,9 +112,13 @@ function CommentItem({ c, taskUuid, isReply }) {
     );
 }
 
-export default function Show({ task, comments, canChangeStatus }) {
+export default function Show({ task, comments, canChangeStatus, canModify }) {
+    const fileRef = useRef();
     const changeStatus = (status) => {
         if (status !== task.status) router.patch(route('tasks.status', task.uuid), { status }, { preserveScroll: true });
+    };
+    const uploadFile = (file) => {
+        if (file) router.post(route('tasks.attachments.store', task.uuid), { file }, { forceFormData: true, preserveScroll: true, onError: (e) => alert(e.file ?? 'Upload failed.') });
     };
     return (
         <AuthenticatedLayout
@@ -121,7 +126,12 @@ export default function Show({ task, comments, canChangeStatus }) {
                 <PageHeader
                     title={task.title}
                     subtitle={<>in <Link href={route('projects.show', task.project_uuid)} className="text-brand-600 hover:underline">{task.project}</Link></>}
-                    actions={<Link href={route('tasks.index')} className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back</Link>}
+                    actions={
+                        <Link href={route('tasks.index')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                            Back
+                        </Link>
+                    }
                 />
             }
         >
@@ -159,6 +169,24 @@ export default function Show({ task, comments, canChangeStatus }) {
                         {task.completed_at && <div className="flex justify-between"><span className="text-slate-400">Completed</span><span className="font-medium text-emerald-600">{fmt(task.completed_at)}</span></div>}
                         <div className="flex justify-between"><span className="text-slate-400">Reporter</span><span className="font-medium text-slate-700">{task.reporter ?? '—'}</span></div>
                         <div className="flex justify-between"><span className="text-slate-400">Assignees</span><span className="font-medium text-slate-700">{task.assignees.join(', ') || '—'}</span></div>
+                    </div>
+
+                    {/* Attachments */}
+                    <div className="mt-4 border-t border-slate-100 pt-4">
+                        <div className="mb-2 flex items-center justify-between">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Attachments ({task.attachments.length})</span>
+                            {canModify && (
+                                <>
+                                    <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+                                        <Icon name="plus" className="h-3.5 w-3.5" /> Add
+                                    </button>
+                                    <input ref={fileRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; uploadFile(f); }} />
+                                </>
+                            )}
+                        </div>
+                        {task.attachments.length === 0
+                            ? <p className="text-xs text-slate-400">No attachments yet.</p>
+                            : <AttachmentViewer items={task.attachments} />}
                     </div>
                 </Card>
 

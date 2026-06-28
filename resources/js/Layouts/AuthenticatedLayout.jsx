@@ -1,4 +1,5 @@
 import { Icon } from '@/Components/ui/Icon';
+import { Toast } from '@/Components/ui/Toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { MENU, hrefFor, isActive } from '@/menu';
 import { Link, router, usePage } from '@inertiajs/react';
@@ -226,6 +227,8 @@ export default function AuthenticatedLayout({ header, children }) {
                     </footer>
                 </div>
             </div>
+
+            <Toast />
         </div>
     );
 }

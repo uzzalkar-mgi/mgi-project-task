@@ -37,7 +37,10 @@ export default function Show({ user, ledProjects, memberProjects, tasks }) {
                     subtitle={user.designation || 'Team member'}
                     actions={
                         <div className="flex items-center gap-2">
-                            <Link href={route('users.index')} className="text-sm font-medium text-slate-500 hover:text-slate-800">← Back</Link>
+                            <Link href={route('users.index')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                                Back
+                            </Link>
                             {can('users.update') && <Link href={route('users.edit', user.uuid)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Edit</Link>}
                         </div>
                     }

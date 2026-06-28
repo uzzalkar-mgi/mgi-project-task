@@ -102,7 +102,7 @@ export default function Create({ projects, users }) {
 
                 <Card className="p-5">
                     <SectionTitle>Assignees</SectionTitle>
-                    <Field label="Assigned To" error={errors.assignee_ids}>
+                    <Field label="Assigned To" required error={errors.assignee_ids}>
                         <MultiCombobox options={userOpts} values={data.assignee_ids} onChange={(v) => setData('assignee_ids', v)} placeholder="Search to assign…" />
                     </Field>
                 </Card>
