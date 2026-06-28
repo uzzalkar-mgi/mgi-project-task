@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attachment;
+use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,21 +29,39 @@ class TaskController extends Controller
 
         $tasks = Task::whereIn('project_id', $projectIds)
             ->with(['project:id,uuid,name', 'assignees:id,name'])
-            ->withCount('attachments')
+            ->withCount('attachments', 'comments')
             ->orderByRaw('due_date is null, due_date asc')
-            ->get()
-            ->map(fn (Task $t) => [
-                'uuid'        => $t->uuid,
-                'title'       => $t->title,
-                'project'     => $t->project?->name,
-                'status'      => $t->status,
-                'priority'    => $t->priority,
-                'due_date'    => $t->due_date?->toDateString(),
-                'assignees'   => $t->assignees->pluck('name'),
-                'attachments'       => $t->attachments_count,
-                'can_modify'        => $this->canModify($user, $t),
-                'can_change_status' => $this->canChangeStatus($user, $t),
-            ]);
+            ->get();
+
+        // Per-user last-viewed timestamps -> compute new (unseen) comment counts.
+        $views = DB::table('task_views')
+            ->where('user_id', $user->id)
+            ->whereIn('task_id', $tasks->pluck('id'))
+            ->pluck('last_viewed_at', 'task_id');
+
+        $newCounts = Comment::whereIn('task_id', $tasks->pluck('id'))
+            ->get(['task_id', 'created_at'])
+            ->groupBy('task_id')
+            ->map(function ($group, $taskId) use ($views) {
+                $seenAt = $views[$taskId] ?? null;
+                return $group->filter(fn ($c) => ! $seenAt || $c->created_at->gt($seenAt))->count();
+            });
+
+        $tasks = $tasks->map(fn (Task $t) => [
+            'uuid'        => $t->uuid,
+            'title'       => $t->title,
+            'project'     => $t->project?->name,
+            'status'      => $t->status,
+            'priority'    => $t->priority,
+            'platform'    => $t->platform,
+            'due_date'    => $t->due_date?->toDateString(),
+            'assignees'   => $t->assignees->pluck('name'),
+            'attachments' => $t->attachments_count,
+            'comments'    => $t->comments_count,
+            'new_comments' => $newCounts[$t->id] ?? 0,
+            'can_modify'        => $this->canModify($user, $t),
+            'can_change_status' => $this->canChangeStatus($user, $t),
+        ]);
 
         return Inertia::render('Tasks/Index', [
             'tasks'     => $tasks,
@@ -71,6 +91,7 @@ class TaskController extends Controller
             'due_date'        => ['required', 'date', 'after_or_equal:start_date'],
             'priority'        => ['required', 'in:urgent,high,normal,low'],
             'status'          => ['required', 'in:todo,in_progress,under_review,done,blocked'],
+            'platform'        => ['required', 'in:web,android,both'],
             'estimated_hours' => ['nullable', 'numeric', 'min:0'],
             'assignee_ids'    => ['array'],
             'assignee_ids.*'  => ['exists:users,id'],
@@ -94,6 +115,12 @@ class TaskController extends Controller
     {
         $user = $request->user();
         abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists(), 403);
+
+        // Mark this task as seen now (clears the "new comments" flag for this user).
+        DB::table('task_views')->updateOrInsert(
+            ['task_id' => $task->id, 'user_id' => $user->id],
+            ['last_viewed_at' => now()]
+        );
 
         $task->load([
             'project:id,uuid,name',
@@ -123,6 +150,7 @@ class TaskController extends Controller
                 'description' => $task->description,
                 'status'      => $task->status,
                 'priority'    => $task->priority,
+                'platform'    => $task->platform,
                 'due_date'    => $task->due_date?->toDateString(),
                 'project'     => $task->project?->name,
                 'project_uuid' => $task->project?->uuid,

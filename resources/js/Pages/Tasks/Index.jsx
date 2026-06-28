@@ -15,41 +15,68 @@ const COLUMNS = [
 const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
 const COL_ACCENT = { todo: 'border-t-slate-300', in_progress: 'border-t-brand-500', under_review: 'border-t-amber-500', done: 'border-t-emerald-500', blocked: 'border-t-rose-500' };
 const PRIORITY_TONE = { urgent: 'red', high: 'amber', normal: 'blue', low: 'slate' };
+const PLATFORM_LABEL = { web: 'Web', android: 'Android', both: 'Web+Android' };
 
 function fmt(d) {
     if (!d) return '—';
     return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
 }
 
+/** First two words of the title; append "..." when truncated. */
+function shortTitle(title = '') {
+    const words = title.trim().split(/\s+/);
+    return words.length <= 2 ? title : words.slice(0, 2).join(' ') + ' .........';
+}
+
 function uploadAttachment(uuid, file) {
     router.post(route('tasks.attachments.store', uuid), { file }, { forceFormData: true, preserveScroll: true });
 }
 
+function CommentMeta({ t }) {
+    return (
+        <span className="flex items-center gap-1 text-xs text-slate-400" title={`${t.comments} comment(s)`}>
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            {t.comments}
+            {t.new_comments > 0 && (
+                <span className="ml-0.5 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{t.new_comments} new</span>
+            )}
+        </span>
+    );
+}
+
 function TaskCard({ t, draggable, onDragStart }) {
     const fileRef = useRef();
+    const go = () => router.visit(route('tasks.show', t.uuid));
     return (
         <div
             draggable={draggable}
             onDragStart={(e) => onDragStart(e, t)}
-            className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
+            onClick={go}
+            className={`cursor-pointer rounded-lg border bg-white p-3 shadow-sm transition hover:border-brand-300 ${draggable ? 'active:cursor-grabbing' : ''} ${t.new_comments > 0 ? 'border-rose-200' : 'border-slate-200'}`}
         >
             <div className="flex items-start justify-between gap-2">
-                <Link href={route('tasks.show', t.uuid)} className="text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
+                <span className="text-sm font-medium text-slate-800" title={t.title}>{shortTitle(t.title)}</span>
                 <Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge>
             </div>
             <p className="mt-1 truncate text-xs text-slate-400">{t.project}</p>
+            <div className="mt-1"><Badge tone="slate">{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></div>
             <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
                 <span>{t.assignees.join(', ') || 'Unassigned'}</span>
                 <span>{fmt(t.due_date)}</span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-slate-50 pt-2">
-                <span className="flex items-center gap-1 text-xs text-slate-400">
-                    <Icon name="projects" className="h-3.5 w-3.5" /> {t.attachments}
-                </span>
+                <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1 text-xs text-slate-400">
+                        <Icon name="projects" className="h-3.5 w-3.5" /> {t.attachments}
+                    </span>
+                    <CommentMeta t={t} />
+                </div>
                 {t.can_modify && (
                     <>
-                        <button onClick={() => fileRef.current?.click()} className="text-xs font-medium text-brand-600 hover:underline">+ Attach</button>
-                        <input ref={fileRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) uploadAttachment(t.uuid, f); }} />
+                        <button onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} className="text-xs font-medium text-brand-600 hover:underline">+ Attach</button>
+                        <input ref={fileRef} type="file" className="hidden" onClick={(e) => e.stopPropagation()} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) uploadAttachment(t.uuid, f); }} />
                     </>
                 )}
             </div>
@@ -107,20 +134,24 @@ function List({ tasks }) {
                         <tr>
                             <th className="px-4 py-3">Task</th>
                             <th className="px-4 py-3">Project</th>
+                            <th className="px-4 py-3">Platform</th>
                             <th className="px-4 py-3">Assignees</th>
                             <th className="px-4 py-3">Priority</th>
                             <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Comments</th>
                             <th className="px-4 py-3">Due</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                         {tasks.map((t) => (
-                            <tr key={t.uuid} className="hover:bg-slate-50">
-                                <td className="px-4 py-3 font-medium text-slate-800"><Link href={route('tasks.show', t.uuid)} className="hover:text-brand-700">{t.title}</Link></td>
+                            <tr key={t.uuid} onClick={() => router.visit(route('tasks.show', t.uuid))} className="cursor-pointer hover:bg-slate-50">
+                                <td className="px-4 py-3 font-medium text-slate-800 hover:text-brand-700" title={t.title}>{shortTitle(t.title)}</td>
                                 <td className="px-4 py-3 text-slate-500">{t.project}</td>
+                                <td className="px-4 py-3"><Badge tone="slate">{PLATFORM_LABEL[t.platform] ?? t.platform}</Badge></td>
                                 <td className="px-4 py-3 text-slate-500">{t.assignees.join(', ') || '—'}</td>
                                 <td className="px-4 py-3"><Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge></td>
                                 <td className="px-4 py-3"><Badge tone={TASK_TONE[t.status] ?? 'slate'}>{COLUMNS.find((c) => c.key === t.status)?.label ?? t.status}</Badge></td>
+                                <td className="px-4 py-3"><CommentMeta t={t} /></td>
                                 <td className="px-4 py-3 text-slate-500">{fmt(t.due_date)}</td>
                             </tr>
                         ))}

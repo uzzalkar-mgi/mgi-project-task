@@ -136,6 +136,7 @@ class ProjectController extends Controller
                     'title'     => $t->title,
                     'status'    => $t->status,
                     'priority'  => $t->priority,
+                    'platform'  => $t->platform,
                     'due_date'  => $t->due_date?->toDateString(),
                     'assignees' => $t->assignees->pluck('name'),
                     'attachments' => $t->attachments->map(fn ($a) => [

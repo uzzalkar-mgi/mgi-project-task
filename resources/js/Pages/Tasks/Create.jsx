@@ -41,6 +41,7 @@ export default function Create({ projects, users }) {
         due_date: '',
         priority: 'normal',
         status: 'todo',
+        platform: 'web',
         estimated_hours: '',
         assignee_ids: [],
     });
@@ -86,6 +87,11 @@ export default function Create({ projects, users }) {
                         <Field label="Status" required error={errors.status}>
                             <select className={inputCls} value={data.status} onChange={(e) => setData('status', e.target.value)}>
                                 {STATUSES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                        </Field>
+                        <Field label="Platform" required error={errors.platform}>
+                            <select className={inputCls} value={data.platform} onChange={(e) => setData('platform', e.target.value)}>
+                                {[['web', 'Web'], ['android', 'Android'], ['both', 'Both (Web & Android)']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
                         </Field>
                         <Field label="Estimated Hours" error={errors.estimated_hours}>
