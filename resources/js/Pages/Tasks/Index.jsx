@@ -102,9 +102,16 @@ function Board({ tasks, onOpenComments }) {
     const [dragId, setDragId] = useState(null);
     const [overCol, setOverCol] = useState(null);
 
-    const onDragStart = (e, t) => { setDragId(t.uuid); e.dataTransfer.effectAllowed = 'move'; };
-    const onDrop = (status) => {
-        const t = tasks.find((x) => x.uuid === dragId);
+    const onDragStart = (e, t) => {
+        setDragId(t.uuid);
+        e.dataTransfer.effectAllowed = 'move';
+        // Required for the drag to actually start in Firefox/some browsers.
+        try { e.dataTransfer.setData('text/plain', t.uuid); } catch { /* ignore */ }
+    };
+    const onDrop = (e, status) => {
+        e.preventDefault();
+        const id = dragId || e.dataTransfer.getData('text/plain');
+        const t = tasks.find((x) => x.uuid === id);
         setOverCol(null);
         setDragId(null);
         if (t && t.status !== status && t.can_change_status) {
@@ -119,9 +126,9 @@ function Board({ tasks, onOpenComments }) {
                 return (
                     <div
                         key={col.key}
-                        onDragOver={(e) => { e.preventDefault(); setOverCol(col.key); }}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOverCol(col.key); }}
                         onDragLeave={() => setOverCol((c) => (c === col.key ? null : c))}
-                        onDrop={() => onDrop(col.key)}
+                        onDrop={(e) => onDrop(e, col.key)}
                         className={`rounded-xl border border-t-4 bg-slate-50/60 p-2 ${COL_ACCENT[col.key]} ${overCol === col.key ? 'ring-2 ring-brand-200' : 'border-slate-200'}`}
                     >
                         <div className="mb-2 flex items-center justify-between px-1">
