@@ -107,8 +107,16 @@ export default function Show({ user, ledProjects, memberProjects, tasks, created
                                 {tasks.map((t) => (
                                     <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
                                         <div className="min-w-0">
-                                            <p className="truncate text-sm font-medium text-slate-800">{t.title}</p>
-                                            <p className="truncate text-xs text-slate-400">{t.project} · due {fmt(t.due_date)}</p>
+                                            <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
+                                            <p className="truncate text-xs text-slate-400">
+                                                {t.project} · due {fmt(t.due_date)}
+                                                {t.created_by && (
+                                                    <> · created by {t.created_by_uuid
+                                                        ? <Link href={route('users.show', t.created_by_uuid)} className="font-medium text-slate-500 hover:text-brand-600">{t.created_by}</Link>
+                                                        : <span className="font-medium text-slate-500">{t.created_by}</span>
+                                                    }</>
+                                                )}
+                                            </p>
                                         </div>
                                         <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
                                     </li>
