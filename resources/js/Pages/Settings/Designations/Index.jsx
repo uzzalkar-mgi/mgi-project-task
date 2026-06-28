@@ -66,7 +66,6 @@ export default function Index({ designations }) {
                                     <div className="flex items-center justify-end gap-2">
                                         {can('designations.update') && <button onClick={() => open(d)} className="flex items-center gap-1 rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><Icon name="edit" className="h-3.5 w-3.5" /> Edit</button>}
                                         {can('designations.update') && <StatusActionButton active={d.status === 1} url={route('designations.status', d.id)} name={d.name} />}
-                                        {can('designations.delete') && <button onClick={() => remove(d)} className="flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50"><Icon name="trash" className="h-3.5 w-3.5" /> Delete</button>}
                                     </div>
                                 </td>
                             </tr>
