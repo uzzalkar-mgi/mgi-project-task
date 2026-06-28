@@ -146,7 +146,9 @@ export default function Show({ task, comments, canChangeStatus, canModify }) {
                         <Badge tone={{ web: 'blue', android: 'green', both: 'amber' }[task.platform] ?? 'slate'}>{{ web: 'Web', android: 'Android', both: 'Web+Android' }[task.platform] ?? task.platform}</Badge>
                     </div>
                     <div className="mb-4"><Countdown dueDate={task.due_date} status={task.status} completedAt={task.completed_at} /></div>
-                    <p className="whitespace-pre-wrap text-sm text-slate-600">{task.description || 'No description.'}</p>
+                    {task.description
+                        ? <div className="rich text-sm text-slate-600" dangerouslySetInnerHTML={{ __html: task.description }} />
+                        : <p className="text-sm text-slate-400">No description.</p>}
 
                     {/* Status update */}
                     <div className="mt-4 border-t border-slate-100 pt-4">
@@ -165,7 +167,7 @@ export default function Show({ task, comments, canChangeStatus, canModify }) {
                     </div>
 
                     <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
-                        <div className="flex justify-between"><span className="text-slate-400">Due</span><span className="font-medium text-slate-700">{fmt(task.due_date)}</span></div>
+                        <div className="flex justify-between"><span className="text-slate-400">End Date</span><span className="font-medium text-slate-700">{fmt(task.due_date)}</span></div>
                         {task.completed_at && <div className="flex justify-between"><span className="text-slate-400">Completed</span><span className="font-medium text-emerald-600">{fmt(task.completed_at)}</span></div>}
                         <div className="flex justify-between"><span className="text-slate-400">Reporter</span><span className="font-medium text-slate-700">{task.reporter ?? '—'}</span></div>
                         <div className="flex justify-between"><span className="text-slate-400">Assignees</span><span className="font-medium text-slate-700">{task.assignees.join(', ') || '—'}</span></div>

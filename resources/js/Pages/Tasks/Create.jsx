@@ -1,6 +1,7 @@
 import { Card, PageHeader, SectionTitle } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
 import { Combobox, MultiCombobox } from '@/Components/ui/Combobox';
+import { RichTextEditor } from '@/Components/ui/RichTextEditor';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
@@ -70,13 +71,13 @@ export default function Create({ projects, users }) {
                         </Field>
                         <div className="sm:col-span-2">
                             <Field label="Description / Notes" error={errors.description}>
-                                <textarea rows={3} className={inputCls} value={data.description} onChange={(e) => setData('description', e.target.value)} />
+                                <RichTextEditor value={data.description} onChange={(html) => setData('description', html)} />
                             </Field>
                         </div>
                         <Field label="Start Date" error={errors.start_date}>
                             <input type="date" className={inputCls} value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
                         </Field>
-                        <Field label="Due Date" required error={errors.due_date}>
+                        <Field label="End Date" required error={errors.due_date}>
                             <input type="date" className={inputCls} value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
                         </Field>
                         <Field label="Priority" required error={errors.priority}>
