@@ -27,7 +27,8 @@
       "Bash(ls \"src/app/\\(app\\)\")",
       "Bash(git -c user.name=\"uzzal.kar\" -c user.email=\"uzzal.kar@mgi.org\" commit -q -m \"docs: project README for PTS\")",
       "Bash(echo \"pushed: $?\")",
-      "Bash(grep -n \"use App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Department\" app/Http/Controllers/DesignationController.php)"
+      "Bash(grep -n \"use App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Department\" app/Http/Controllers/DesignationController.php)",
+      "Bash(php -r 'echo \"upload_max_filesize=\".ini_get\\(\"upload_max_filesize\"\\).\" post_max_size=\".ini_get\\(\"post_max_size\"\\).\"\\\\n\";')"
     ]
   }
 }

@@ -196,7 +196,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
             <div className="flex">
                 {/* Sidebar — desktop */}
-                <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 border-r border-slate-200 bg-white lg:block">
+                <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 border-r border-slate-200 bg-white lg:block">
                     <SidebarNav />
                 </aside>
 
@@ -204,7 +204,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 {mobileOpen && (
                     <div className="fixed inset-0 z-50 lg:hidden">
                         <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-                        <aside className="absolute left-0 top-0 h-full w-64 bg-white shadow-xl">
+                        <aside className="absolute left-0 top-0 h-full w-56 bg-white shadow-xl">
                             <SidebarNav onNavigate={() => setMobileOpen(false)} />
                         </aside>
                     </div>

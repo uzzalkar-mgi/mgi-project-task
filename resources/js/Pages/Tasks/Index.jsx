@@ -127,9 +127,9 @@ function Board({ tasks, onOpenComments }) {
                             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{col.label}</span>
                             <Badge tone={TASK_TONE[col.key]}>{items.length}</Badge>
                         </div>
-                        <div className="space-y-2">
+                        <div className="scroll-thin max-h-[calc(100vh-16rem)] space-y-2 overflow-y-auto pr-1">
                             {items.map((t) => <TaskCard key={t.uuid} t={t} draggable={t.can_change_status} onDragStart={onDragStart} onOpenComments={onOpenComments} />)}
-                            {items.length === 0 && <p className="px-1 py-4 text-center text-xs text-slate-300">Drop here</p>}
+                            {items.length === 0 && <p className="px-1 py-8 text-center text-xs text-slate-300">Drop here</p>}
                         </div>
                     </div>
                 );
@@ -176,7 +176,10 @@ function TaskTable({ tasks, onOpenComments, showProject = true }) {
 }
 
 function List({ tasks, onOpenComments }) {
-    const newTasks = tasks.filter((t) => t.is_new);
+    // Latest tasks across all projects (newest first), shown in one block at top.
+    const latest = [...tasks]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 8);
 
     // Group all tasks by project (preserve first-seen order).
     const groups = [];
@@ -187,30 +190,38 @@ function List({ tasks, onOpenComments }) {
         groups[idx[key]].tasks.push(t);
     });
 
+    const CardGrid = ({ items }) => (
+        <div className="grid gap-4 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {items.map((t) => (
+                <TaskCard key={t.uuid} t={t} draggable={false} onDragStart={() => {}} onOpenComments={onOpenComments} />
+            ))}
+        </div>
+    );
+
     return (
         <div className="space-y-6">
-            {/* Top: newly added tasks across all projects (mixed). */}
-            {newTasks.length > 0 && (
+            {/* Top: latest tasks across all projects (mixed). */}
+            {latest.length > 0 && (
                 <Card className="overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 pt-4">
+                    <div className="flex items-center gap-2 px-4 py-4">
                         <Icon name="tasks" className="h-4 w-4 text-brand-600" />
-                        <h3 className="text-sm font-semibold text-slate-900">New Tasks</h3>
-                        <Badge tone="blue">{newTasks.length}</Badge>
-                        <span className="text-xs text-slate-400">· added in the last 7 days</span>
+                        <h3 className="text-sm font-semibold text-slate-900">Latest Tasks</h3>
+                        <Badge tone="blue">{latest.length}</Badge>
+                        <span className="text-xs text-slate-400">· most recently created across all projects</span>
                     </div>
-                    <TaskTable tasks={newTasks} onOpenComments={onOpenComments} />
+                    <CardGrid items={latest} />
                 </Card>
             )}
 
-            {/* Project-wise sections. */}
+            {/* Project-wise sections (card-wise). */}
             {groups.map((g) => (
                 <Card key={g.name} className="overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 pt-4">
+                    <div className="flex items-center gap-2 px-4 py-4">
                         <Icon name="projects" className="h-4 w-4 text-slate-500" />
                         <h3 className="text-sm font-semibold text-slate-900">{g.name}</h3>
                         <Badge tone="slate">{g.tasks.length}</Badge>
                     </div>
-                    <TaskTable tasks={g.tasks} onOpenComments={onOpenComments} showProject={false} />
+                    <CardGrid items={g.tasks} />
                 </Card>
             ))}
         </div>
@@ -218,7 +229,7 @@ function List({ tasks, onOpenComments }) {
 }
 
 export default function Index({ tasks, canCreate }) {
-    const [view, setView] = useState('board');
+    const [view, setView] = useState('list');
     const [q, setQ] = useState('');
     const [activeTask, setActiveTask] = useState(null); // task whose comments modal is open
     const shown = tasks.filter((t) => `${t.title} ${t.project} ${t.assignees.join(' ')}`.toLowerCase().includes(q.toLowerCase()));
