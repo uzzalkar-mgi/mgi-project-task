@@ -25,7 +25,7 @@ function Info({ icon, label, value }) {
     );
 }
 
-export default function Show({ user, ledProjects, memberProjects, tasks }) {
+export default function Show({ user, ledProjects, memberProjects, tasks, createdTasks = [] }) {
     const { can } = usePermissions();
     const role = user.roles[0] ?? 'Member';
 
@@ -114,6 +114,39 @@ export default function Show({ user, ledProjects, memberProjects, tasks }) {
                                     </li>
                                 ))}
                             </ul>
+                        )}
+                    </Card>
+
+                    {/* Tasks created by this user (project-wise) */}
+                    <Card className="p-5">
+                        <SectionTitle>Created Tasks ({createdTasks.reduce((n, g) => n + g.tasks.length, 0)})</SectionTitle>
+                        {createdTasks.length === 0 ? (
+                            <p className="text-sm text-slate-400">This user hasn't created any tasks.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {createdTasks.map((g) => (
+                                    <div key={g.project}>
+                                        <div className="mb-1 flex items-center gap-2">
+                                            <Icon name="projects" className="h-4 w-4 text-slate-400" />
+                                            {g.project_uuid
+                                                ? <Link href={route('projects.show', g.project_uuid)} className="text-sm font-semibold text-slate-800 hover:text-brand-700">{g.project}</Link>
+                                                : <span className="text-sm font-semibold text-slate-800">{g.project}</span>}
+                                            <Badge tone="slate">{g.tasks.length}</Badge>
+                                        </div>
+                                        <ul className="divide-y divide-slate-50 border-l-2 border-slate-100 pl-3">
+                                            {g.tasks.map((t) => (
+                                                <li key={t.uuid} className="flex items-center justify-between gap-3 py-2">
+                                                    <Link href={route('tasks.show', t.uuid)} className="min-w-0 truncate text-sm text-slate-700 hover:text-brand-700">{t.title}</Link>
+                                                    <div className="flex shrink-0 items-center gap-2">
+                                                        <span className="text-xs text-slate-400">{fmt(t.due_date)}</span>
+                                                        <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </Card>
                 </div>

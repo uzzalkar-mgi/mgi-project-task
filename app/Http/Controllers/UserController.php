@@ -87,6 +87,20 @@ class UserController extends Controller
                 'uuid' => $t->uuid, 'title' => $t->title, 'project' => $t->project?->name,
                 'status' => $t->status, 'priority' => $t->priority, 'due_date' => $t->due_date?->toDateString(),
             ]),
+            // Tasks this user CREATED (reporter), grouped by project.
+            'createdTasks' => \App\Models\Task::where('reporter_id', $user->id)
+                ->with('project:id,uuid,name')
+                ->orderBy('due_date')
+                ->get()
+                ->groupBy(fn ($t) => $t->project?->name ?? 'No project')
+                ->map(fn ($group, $name) => [
+                    'project'      => $name,
+                    'project_uuid' => $group->first()->project?->uuid,
+                    'tasks'        => $group->map(fn ($t) => [
+                        'uuid' => $t->uuid, 'title' => $t->title, 'status' => $t->status,
+                        'priority' => $t->priority, 'due_date' => $t->due_date?->toDateString(),
+                    ])->values(),
+                ])->values(),
         ]);
     }
 

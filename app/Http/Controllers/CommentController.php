@@ -6,6 +6,7 @@ use App\Models\Attachment;
 use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -62,10 +63,14 @@ class CommentController extends Controller
     }
 
     /** Delete own comment (or super-admin). */
-    public function destroy(Request $request, Comment $comment): RedirectResponse
+    public function destroy(Request $request, Comment $comment): RedirectResponse|JsonResponse
     {
         abort_unless($comment->user_id === $request->user()->id || $request->user()->isSuperAdmin(), 403);
         $comment->delete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
 
         return back()->with('status', 'Comment deleted.');
     }

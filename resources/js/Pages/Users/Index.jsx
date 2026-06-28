@@ -102,6 +102,9 @@ export default function Index({ users, filters, canManage }) {
                                             <Link href={route('users.show', u.uuid)} className="flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">
                                                 <Icon name="eye" className="h-3.5 w-3.5" /> View
                                             </Link>
+                                            <Link href={route('users.show', u.uuid)} className="flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50" title="Created tasks (project-wise)">
+                                                <Icon name="tasks" className="h-3.5 w-3.5" /> Tasks
+                                            </Link>
                                             {can('users.update') && (
                                                 <Link href={route('users.edit', u.uuid)} className="flex items-center gap-1 rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50">
                                                     <Icon name="edit" className="h-3.5 w-3.5" /> Edit

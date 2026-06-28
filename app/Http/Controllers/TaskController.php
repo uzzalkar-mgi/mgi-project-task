@@ -78,9 +78,12 @@ class TaskController extends Controller
     {
         $this->authorize('permission', 'tasks.create');
 
+        $projectIds = $this->visibleProjects($request->user())->pluck('id');
+
         return Inertia::render('Tasks/Create', [
             'projects' => $this->visibleProjects($request->user())->get(['id', 'name']),
             'users'    => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
+            'parentTasks' => Task::whereIn('project_id', $projectIds)->orderBy('title')->get(['id', 'title', 'project_id']),
         ]);
     }
 
@@ -90,6 +93,7 @@ class TaskController extends Controller
 
         $data = $request->validate([
             'project_id'      => ['required', 'exists:projects,id'],
+            'parent_task_id'  => ['nullable', 'exists:tasks,id'],
             'title'           => ['required', 'string', 'max:255'],
             'description'     => ['nullable', 'string'],
             'start_date'      => ['nullable', 'date'],
@@ -118,6 +122,71 @@ class TaskController extends Controller
         return redirect()->route('tasks.index')->with('status', 'Task created.');
     }
 
+    public function edit(Request $request, Task $task): Response
+    {
+        $user = $request->user();
+        $task->loadMissing('assignees:id');
+        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists() && $this->canModify($user, $task), 403);
+
+        $projectIds = $this->visibleProjects($user)->pluck('id');
+
+        return Inertia::render('Tasks/Edit', [
+            'task' => [
+                'uuid'            => $task->uuid,
+                'project_id'      => $task->project_id,
+                'parent_task_id'  => $task->parent_task_id,
+                'title'           => $task->title,
+                'description'     => $task->description,
+                'start_date'      => $task->start_date?->toDateString(),
+                'due_date'        => $task->due_date?->toDateString(),
+                'priority'        => $task->priority,
+                'status'          => $task->status,
+                'platform'        => $task->platform,
+                'estimated_hours' => $task->estimated_hours,
+                'assignee_ids'    => $task->assignees->pluck('id'),
+            ],
+            'projects' => $this->visibleProjects($user)->get(['id', 'name']),
+            'users'    => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
+            'parentTasks' => Task::whereIn('project_id', $projectIds)->whereKeyNot($task->id)->orderBy('title')->get(['id', 'title', 'project_id']),
+        ]);
+    }
+
+    public function update(Request $request, Task $task): RedirectResponse
+    {
+        $user = $request->user();
+        $task->loadMissing('assignees:id');
+        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists() && $this->canModify($user, $task), 403);
+
+        $data = $request->validate([
+            'project_id'      => ['required', 'exists:projects,id'],
+            'parent_task_id'  => ['nullable', 'exists:tasks,id', 'different:'.$task->id],
+            'title'           => ['required', 'string', 'max:255'],
+            'description'     => ['nullable', 'string'],
+            'start_date'      => ['nullable', 'date'],
+            'due_date'        => ['required', 'date', 'after_or_equal:start_date'],
+            'priority'        => ['required', 'in:urgent,high,normal,low'],
+            'status'          => ['required', 'in:todo,in_progress,under_review,done,blocked'],
+            'platform'        => ['required', 'in:web,android,both'],
+            'estimated_hours' => ['nullable', 'numeric', 'min:0'],
+            'assignee_ids'    => ['required', 'array', 'min:1'],
+            'assignee_ids.*'  => ['exists:users,id'],
+        ], [
+            'assignee_ids.required' => 'Assign the task to at least one member.',
+            'assignee_ids.min'      => 'Assign the task to at least one member.',
+        ]);
+
+        // Target project must also be visible.
+        abort_unless($this->visibleProjects($user)->whereKey($data['project_id'])->exists(), 403);
+
+        $task->update([
+            ...collect($data)->except('assignee_ids')->all(),
+            'completed_at' => $data['status'] === 'done' ? ($task->completed_at ?? now()) : null,
+        ]);
+        $task->assignees()->sync($data['assignee_ids']);
+
+        return redirect()->route('tasks.show', $task->uuid)->with('status', 'Task updated.');
+    }
+
     /** Task detail + threaded comments. */
     public function show(Request $request, Task $task): Response
     {
@@ -131,6 +200,8 @@ class TaskController extends Controller
             'assignees:id,name',
             'reporter:id,name',
             'attachments',
+            'parent:id,uuid,title',
+            'subtasks:id,uuid,title,status,due_date,parent_task_id',
         ]);
 
         return Inertia::render('Tasks/Show', [
@@ -141,12 +212,17 @@ class TaskController extends Controller
                 'status'      => $task->status,
                 'priority'    => $task->priority,
                 'platform'    => $task->platform,
+                'start_date'  => $task->start_date?->toDateString(),
                 'due_date'    => $task->due_date?->toDateString(),
                 'completed_at' => $task->completed_at?->toDateTimeString(),
                 'project'     => $task->project?->name,
                 'project_uuid' => $task->project?->uuid,
                 'reporter'    => $task->reporter?->name,
                 'assignees'   => $task->assignees->pluck('name'),
+                'parent'      => $task->parent ? ['uuid' => $task->parent->uuid, 'title' => $task->parent->title] : null,
+                'subtasks'    => $task->subtasks->map(fn ($s) => [
+                    'uuid' => $s->uuid, 'title' => $s->title, 'status' => $s->status, 'due_date' => $s->due_date?->toDateString(),
+                ]),
                 'attachments' => $task->attachments->map(fn ($a) => [
                     'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
                 ]),
@@ -183,6 +259,9 @@ class TaskController extends Controller
     /** Threaded comments (top-level + replies) with attachments. */
     private function commentTree(Task $task): array
     {
+        $userId = auth()->id();
+        $isSuper = auth()->user()?->isSuperAdmin() ?? false;
+
         $task->load([
             'comments' => fn ($q) => $q->whereNull('parent_id')->with([
                 'author:id,name',
@@ -196,6 +275,7 @@ class TaskController extends Controller
             'body'        => $c->body,
             'author'      => $c->author?->name,
             'created_at'  => $c->created_at?->diffForHumans(),
+            'can_delete'  => $isSuper || $c->user_id === $userId,
             'attachments' => $c->attachments->map(fn ($a) => [
                 'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
             ]),

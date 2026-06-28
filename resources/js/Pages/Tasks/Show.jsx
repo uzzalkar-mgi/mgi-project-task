@@ -97,9 +97,10 @@ function CommentItem({ c, taskUuid, isReply }) {
                 </div>
                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-700">{c.body}</p>
                 <Attachments items={c.attachments} />
-                {!isReply && (
-                    <button onClick={() => setReplying((v) => !v)} className="mt-1.5 text-xs font-medium text-brand-600 hover:underline">Reply</button>
-                )}
+                <div className="mt-1.5 flex items-center gap-3">
+                    {!isReply && <button onClick={() => setReplying((v) => !v)} className="text-xs font-medium text-brand-600 hover:underline">Reply</button>}
+                    {c.can_delete && <button onClick={() => { if (confirm('Delete this comment?')) router.delete(route('comments.destroy', c.id), { preserveScroll: true }); }} className="text-xs font-medium text-rose-500 hover:underline">Delete</button>}
+                </div>
                 {replying && <CommentForm taskUuid={taskUuid} parentId={c.id} compact onDone={() => setReplying(false)} />}
 
                 {c.replies?.length > 0 && (
@@ -127,10 +128,17 @@ export default function Show({ task, comments, canChangeStatus, canModify }) {
                     title={task.title}
                     subtitle={<>in <Link href={route('projects.show', task.project_uuid)} className="text-brand-600 hover:underline">{task.project}</Link></>}
                     actions={
-                        <Link href={route('tasks.index')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-                            Back
-                        </Link>
+                        <div className="flex items-center gap-2">
+                            <Link href={route('tasks.index')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                                Back
+                            </Link>
+                            {canModify && (
+                                <Link href={route('tasks.edit', task.uuid)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+                                    <Icon name="edit" className="h-4 w-4" /> Edit
+                                </Link>
+                            )}
+                        </div>
                     }
                 />
             }
@@ -167,11 +175,31 @@ export default function Show({ task, comments, canChangeStatus, canModify }) {
                     </div>
 
                     <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
+                        {task.parent && (
+                            <div className="flex justify-between"><span className="text-slate-400">Parent Task</span>
+                                <Link href={route('tasks.show', task.parent.uuid)} className="font-medium text-brand-600 hover:underline">{task.parent.title}</Link>
+                            </div>
+                        )}
+                        <div className="flex justify-between"><span className="text-slate-400">Start Date</span><span className="font-medium text-slate-700">{fmt(task.start_date)}</span></div>
                         <div className="flex justify-between"><span className="text-slate-400">End Date</span><span className="font-medium text-slate-700">{fmt(task.due_date)}</span></div>
                         {task.completed_at && <div className="flex justify-between"><span className="text-slate-400">Completed</span><span className="font-medium text-emerald-600">{fmt(task.completed_at)}</span></div>}
                         <div className="flex justify-between"><span className="text-slate-400">Reporter</span><span className="font-medium text-slate-700">{task.reporter ?? '—'}</span></div>
                         <div className="flex justify-between"><span className="text-slate-400">Assignees</span><span className="font-medium text-slate-700">{task.assignees.join(', ') || '—'}</span></div>
                     </div>
+
+                    {task.subtasks?.length > 0 && (
+                        <div className="mt-4 border-t border-slate-100 pt-4">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Sub-tasks ({task.subtasks.length})</p>
+                            <ul className="space-y-1">
+                                {task.subtasks.map((s) => (
+                                    <li key={s.uuid} className="flex items-center justify-between gap-2 text-sm">
+                                        <Link href={route('tasks.show', s.uuid)} className="min-w-0 truncate text-slate-700 hover:text-brand-700">{s.title}</Link>
+                                        <Badge tone={TASK_TONE[s.status] ?? 'slate'}>{TASK_LABEL[s.status] ?? s.status}</Badge>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
                     {/* Attachments */}
                     <div className="mt-4 border-t border-slate-100 pt-4">

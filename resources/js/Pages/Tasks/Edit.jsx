@@ -18,39 +18,27 @@ function Field({ label, required, error, children }) {
 }
 
 const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
+const PRIORITIES = [['urgent', 'Urgent'], ['high', 'High'], ['normal', 'Normal'], ['low', 'Low']];
+const STATUSES = [['todo', 'To Do'], ['in_progress', 'In Progress'], ['under_review', 'Under Review'], ['done', 'Done'], ['blocked', 'Blocked']];
 
-const PRIORITIES = [
-    { value: 'urgent', label: 'Urgent' },
-    { value: 'high', label: 'High' },
-    { value: 'normal', label: 'Normal' },
-    { value: 'low', label: 'Low' },
-];
-const STATUSES = [
-    { value: 'todo', label: 'To Do' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'under_review', label: 'Under Review' },
-    { value: 'done', label: 'Done' },
-    { value: 'blocked', label: 'Blocked' },
-];
-
-export default function Create({ projects, users, parentTasks = [] }) {
-    const { data, setData, post, processing, errors } = useForm({
-        project_id: '',
-        parent_task_id: '',
-        title: '',
-        description: '',
-        start_date: '',
-        due_date: '',
-        priority: 'normal',
-        status: 'todo',
-        platform: 'web',
-        estimated_hours: '',
-        assignee_ids: [],
+export default function Edit({ task, projects, users, parentTasks = [] }) {
+    const { data, setData, patch, processing, errors } = useForm({
+        project_id: task.project_id ?? '',
+        parent_task_id: task.parent_task_id ?? '',
+        title: task.title ?? '',
+        description: task.description ?? '',
+        start_date: task.start_date ?? '',
+        due_date: task.due_date ?? '',
+        priority: task.priority ?? 'normal',
+        status: task.status ?? 'todo',
+        platform: task.platform ?? 'web',
+        estimated_hours: task.estimated_hours ?? '',
+        assignee_ids: task.assignee_ids ?? [],
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('tasks.store'));
+        patch(route('tasks.update', task.uuid));
     };
 
     const projectOpts = projects.map((p) => ({ value: p.id, label: p.name }));
@@ -58,8 +46,8 @@ export default function Create({ projects, users, parentTasks = [] }) {
     const parentOpts = parentTasks.filter((t) => String(t.project_id) === String(data.project_id)).map((t) => ({ value: t.id, label: t.title }));
 
     return (
-        <AuthenticatedLayout header={<PageHeader title="New Task" subtitle="Create a task and assign it." />}>
-            <Head title="New Task" />
+        <AuthenticatedLayout header={<PageHeader title="Edit Task" subtitle={task.title} />}>
+            <Head title="Edit Task" />
 
             <form onSubmit={submit} className="space-y-5">
                 <Card className="p-5">
@@ -82,19 +70,19 @@ export default function Create({ projects, users, parentTasks = [] }) {
                             </Field>
                         </div>
                         <Field label="Start Date" error={errors.start_date}>
-                            <input type="date" className={inputCls} value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
+                            <input type="date" className={inputCls} value={data.start_date ?? ''} onChange={(e) => setData('start_date', e.target.value)} />
                         </Field>
                         <Field label="End Date" required error={errors.due_date}>
-                            <input type="date" className={inputCls} value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
+                            <input type="date" className={inputCls} value={data.due_date ?? ''} onChange={(e) => setData('due_date', e.target.value)} />
                         </Field>
                         <Field label="Priority" required error={errors.priority}>
                             <select className={inputCls} value={data.priority} onChange={(e) => setData('priority', e.target.value)}>
-                                {PRIORITIES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                {PRIORITIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
                         </Field>
                         <Field label="Status" required error={errors.status}>
                             <select className={inputCls} value={data.status} onChange={(e) => setData('status', e.target.value)}>
-                                {STATUSES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
                         </Field>
                         <Field label="Platform" required error={errors.platform}>
@@ -103,7 +91,7 @@ export default function Create({ projects, users, parentTasks = [] }) {
                             </select>
                         </Field>
                         <Field label="Estimated Hours" error={errors.estimated_hours}>
-                            <input type="number" step="0.5" min="0" className={inputCls} value={data.estimated_hours} onChange={(e) => setData('estimated_hours', e.target.value)} />
+                            <input type="number" step="0.5" min="0" className={inputCls} value={data.estimated_hours ?? ''} onChange={(e) => setData('estimated_hours', e.target.value)} />
                         </Field>
                     </div>
                 </Card>
@@ -116,14 +104,10 @@ export default function Create({ projects, users, parentTasks = [] }) {
                 </Card>
 
                 <div className="flex items-center gap-3">
-                    <button
-                        type="submit"
-                        disabled={processing}
-                        className="flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-brand-700 to-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:opacity-70"
-                    >
-                        <Icon name="plus" className="h-4 w-4" /> Create Task
+                    <button type="submit" disabled={processing} className="flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-brand-700 to-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:shadow-lg disabled:opacity-70">
+                        <Icon name="check" className="h-4 w-4" /> Save Task
                     </button>
-                    <Link href={route('tasks.index')} className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
+                    <Link href={route('tasks.show', task.uuid)} className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
                         <Icon name="x" className="h-4 w-4" /> Cancel
                     </Link>
                 </div>

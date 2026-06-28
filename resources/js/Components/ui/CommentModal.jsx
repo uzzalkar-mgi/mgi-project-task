@@ -6,7 +6,7 @@ function initials(name = '') {
     return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || '?';
 }
 
-function CommentNode({ c, isReply, onReply }) {
+function CommentNode({ c, isReply, onReply, onDelete }) {
     return (
         <div className={`flex gap-3 ${isReply ? 'mt-3' : 'py-3'}`}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">{initials(c.author)}</span>
@@ -17,10 +17,13 @@ function CommentNode({ c, isReply, onReply }) {
                 </div>
                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-700">{c.body}</p>
                 {c.attachments?.length > 0 && <div className="mt-2"><AttachmentViewer items={c.attachments} size="sm" /></div>}
-                {!isReply && <button onClick={() => onReply(c)} className="mt-1.5 text-xs font-medium text-brand-600 hover:underline">Reply</button>}
+                <div className="mt-1.5 flex items-center gap-3">
+                    {!isReply && <button onClick={() => onReply(c)} className="text-xs font-medium text-brand-600 hover:underline">Reply</button>}
+                    {c.can_delete && <button onClick={() => onDelete(c)} className="text-xs font-medium text-rose-500 hover:underline">Delete</button>}
+                </div>
                 {c.replies?.length > 0 && (
                     <div className="mt-2 border-l-2 border-slate-100 pl-3">
-                        {c.replies.map((r) => <CommentNode key={r.id} c={r} isReply />)}
+                        {c.replies.map((r) => <CommentNode key={r.id} c={r} isReply onDelete={onDelete} />)}
                     </div>
                 )}
             </div>
@@ -47,6 +50,13 @@ export function CommentModal({ taskUuid, taskTitle, onClose, onPosted }) {
     };
 
     useEffect(load, [taskUuid]);
+
+    const remove = (c) => {
+        if (!confirm('Delete this comment?')) return;
+        window.axios.delete(`/comments/${c.id}`, { headers: { Accept: 'application/json' } })
+            .then(() => { load(); onPosted?.(); })
+            .catch(() => setError('Failed to delete.'));
+    };
 
     const submit = (e) => {
         e.preventDefault();
@@ -88,7 +98,7 @@ export function CommentModal({ taskUuid, taskTitle, onClose, onPosted }) {
                         <p className="py-10 text-center text-sm text-slate-400">No comments yet. Start the discussion.</p>
                     ) : (
                         <div className="divide-y divide-slate-100">
-                            {comments.map((c) => <CommentNode key={c.id} c={c} onReply={setReplyTo} />)}
+                            {comments.map((c) => <CommentNode key={c.id} c={c} onReply={setReplyTo} onDelete={remove} />)}
                         </div>
                     )}
                 </div>
