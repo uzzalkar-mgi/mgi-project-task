@@ -13,16 +13,7 @@ class MilestoneController extends Controller
 {
     private function visibleProjectIds(User $user)
     {
-        $q = Project::query();
-        if (! $user->hasPermission('projects.create') && ! $user->isSuperAdmin()) {
-            $q->where(function ($w) use ($user) {
-                $w->where('lead_user_id', $user->id)
-                    ->orWhere('primary_responsible_id', $user->id)
-                    ->orWhere('secondary_responsible_id', $user->id)
-                    ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
-            });
-        }
-        return $q->pluck('id');
+        return Project::query()->visibleTo($user)->pluck('id');
     }
 
     public function index(Request $request): Response

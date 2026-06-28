@@ -18,25 +18,25 @@ class DatabaseSeeder extends Seeder
 
         $adminRole   = Role::where('code', 'admin')->first();
         $managerRole = Role::where('code', 'manager')->first();
-        $memberRole  = Role::where('code', 'member')->first();
+        $employeeRole  = Role::where('code', 'employee')->first();
 
         $admin = User::updateOrCreate(
-            ['email' => 'admin@mgi.org'],
-            ['name' => 'PTS Admin', 'employee_id' => 'MGI-0001', 'password' => Hash::make('password'), 'status' => 1, 'role_id' => $adminRole->id]
+            ['email' => 'uzzal.kar@mgi.org'],
+            ['name' => 'Uzzal Kar', 'employee_id' => '120292', 'password' => Hash::make('120292'), 'status' => 1, 'role_id' => $adminRole->id]
         );
         $admin->roles()->syncWithoutDetaching([$adminRole->id]);
 
         $manager = User::updateOrCreate(
-            ['email' => 'manager@mgi.org'],
-            ['name' => 'Sample Manager', 'employee_id' => 'MGI-0002', 'password' => Hash::make('password'), 'status' => 1, 'role_id' => $managerRole->id]
+            ['email' => 'mosiur_it@mgi.org'],
+            ['name' => 'Mosiur Rahman', 'employee_id' => '001203', 'password' => Hash::make('001203'), 'status' => 1, 'role_id' => $managerRole->id]
         );
         $manager->roles()->syncWithoutDetaching([$managerRole->id]);
 
-        $member = User::updateOrCreate(
-            ['email' => 'member@mgi.org'],
-            ['name' => 'Sample Member', 'employee_id' => 'MGI-0003', 'password' => Hash::make('password'), 'status' => 1, 'role_id' => $memberRole->id]
+        $employee = User::updateOrCreate(
+            ['email' => 'sharifur.rahman@mgi.org'],
+            ['name' => 'Sharifur Rahman', 'employee_id' => '122287', 'password' => Hash::make('122287'), 'status' => 1, 'role_id' => $employeeRole->id]
         );
-        $member->roles()->syncWithoutDetaching([$memberRole->id]);
+        $employee->roles()->syncWithoutDetaching([$employeeRole->id]);
 
         $this->call(EmployeeSeeder::class);
         $this->call(DepartmentDesignationSeeder::class);

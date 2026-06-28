@@ -101,7 +101,7 @@ class RoleController extends Controller
     {
         $this->authorize('permission', 'roles.delete');
 
-        abort_if(in_array($role->code, ['admin', 'manager', 'member']), 403, 'Core roles cannot be deleted.');
+        abort_if(in_array($role->code, ['admin', 'manager', 'employee']), 403, 'Core roles cannot be deleted.');
         $role->delete();
 
         return redirect()->route('roles.index')->with('status', 'Role deleted.');

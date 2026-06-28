@@ -18,7 +18,6 @@ return new class extends Migration
         Schema::create('designations', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
             $table->tinyInteger('status')->default(1);
             $table->timestamps();
         });

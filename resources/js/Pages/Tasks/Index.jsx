@@ -34,7 +34,7 @@ function TaskCard({ t, draggable, onDragStart }) {
             className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm ${draggable ? 'cursor-grab active:cursor-grabbing' : ''}`}
         >
             <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium text-slate-800">{t.title}</p>
+                <Link href={route('tasks.show', t.uuid)} className="text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
                 <Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge>
             </div>
             <p className="mt-1 truncate text-xs text-slate-400">{t.project}</p>
@@ -116,7 +116,7 @@ function List({ tasks }) {
                     <tbody className="divide-y divide-slate-50">
                         {tasks.map((t) => (
                             <tr key={t.uuid} className="hover:bg-slate-50">
-                                <td className="px-4 py-3 font-medium text-slate-800">{t.title}</td>
+                                <td className="px-4 py-3 font-medium text-slate-800"><Link href={route('tasks.show', t.uuid)} className="hover:text-brand-700">{t.title}</Link></td>
                                 <td className="px-4 py-3 text-slate-500">{t.project}</td>
                                 <td className="px-4 py-3 text-slate-500">{t.assignees.join(', ') || '—'}</td>
                                 <td className="px-4 py-3"><Badge tone={PRIORITY_TONE[t.priority] ?? 'slate'}>{t.priority}</Badge></td>

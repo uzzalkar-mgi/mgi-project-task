@@ -26,7 +26,7 @@ const FEATURES = [
 const ROLES = [
     { name: 'Admin', desc: 'Full access. Manages users, roles and every project.', tone: 'bg-brand-100 text-brand-700' },
     { name: 'Manager', desc: 'Creates projects, assigns tasks, views analytics.', tone: 'bg-emerald-100 text-emerald-700' },
-    { name: 'Member', desc: 'Works assigned tasks, updates status, collaborates.', tone: 'bg-amber-100 text-amber-700' },
+    { name: 'Employee', desc: 'Works assigned tasks, updates status, collaborates.', tone: 'bg-amber-100 text-amber-700' },
 ];
 
 function Logo() {

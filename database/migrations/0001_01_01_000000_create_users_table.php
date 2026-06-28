@@ -16,10 +16,10 @@ return new class extends Migration
             $table->uuid('uuid')->unique();                 // browser-facing id (bigint id stays PK)
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('employee_id')->nullable()->unique();
+            $table->string('employee_id')->unique();
             $table->string('office_contact')->nullable()->unique();
             $table->foreignId('image_id')->nullable();      // avatar (FK added after attachments table)
-            $table->foreignId('role_id')->nullable()->index(); // legacy single role; user_roles pivot is source of truth
+            $table->foreignId('role_id')->index(); // legacy single role; user_roles pivot is source of truth
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->tinyInteger('status')->default(1);      // 1 = Active, 0 = Inactive

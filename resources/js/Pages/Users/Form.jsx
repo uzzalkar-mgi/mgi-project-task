@@ -58,7 +58,7 @@ export default function Form({ user, roles, departments, designations, assigned 
                         <Field label="Email" required error={errors.email}>
                             <input type="email" className={inputCls} value={data.email} onChange={(e) => setData('email', e.target.value)} />
                         </Field>
-                        <Field label="Employee ID" error={errors.employee_id}>
+                        <Field label="Employee ID" required error={errors.employee_id}>
                             <input className={inputCls} value={data.employee_id} onChange={(e) => setData('employee_id', e.target.value)} />
                         </Field>
                         <Field label="Office Contact" error={errors.office_contact}>

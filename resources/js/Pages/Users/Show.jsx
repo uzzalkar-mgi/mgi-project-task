@@ -14,7 +14,7 @@ function fmt(d) {
 const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
 const TASK_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' };
 const PROJ_TONE = { active: 'green', on_hold: 'amber', completed: 'blue', cancelled: 'red' };
-const ROLE_TONE = { Admin: 'blue', Manager: 'green', Member: 'amber' };
+const ROLE_TONE = { Admin: 'blue', Manager: 'green', Employee: 'amber', Member: 'amber' };
 
 function Info({ icon, label, value }) {
     return (

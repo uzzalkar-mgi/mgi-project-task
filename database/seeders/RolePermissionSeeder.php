@@ -15,15 +15,15 @@ class RolePermissionSeeder extends Seeder
      * (Admin is super-admin and implicitly holds all via Gate::before).
      */
     public const MODULES = [
-        'dashboard'  => ['actions' => ['menu', 'view'],                                'label' => 'Dashboard'],
-        'projects'   => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],  'label' => 'Projects'],
-        'tasks'      => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'assign'], 'label' => 'Tasks'],
-        'timeline'   => ['actions' => ['menu', 'view'],                                'label' => 'Timeline'],
-        'milestones' => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],  'label' => 'Milestones'],
-        'users'      => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'manage'], 'label' => 'Team / Users'],
-        'roles'      => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],  'label' => 'Roles & Permissions'],
-        'departments'  => ['actions' => ['menu', 'view', 'create', 'update', 'delete'], 'label' => 'Departments'],
-        'designations' => ['actions' => ['menu', 'view', 'create', 'update', 'delete'], 'label' => 'Designations'],
+        'dashboard'    => ['actions' => ['menu', 'view'],                                         'label' => 'Dashboard'],
+        'projects'     => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Projects'],
+        'tasks'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'assign'], 'label' => 'Tasks'],
+        'timeline'     => ['actions' => ['menu', 'view'],                                         'label' => 'Timeline'],
+        'milestones'   => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Milestones'],
+        'users'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'manage'], 'label' => 'Team / Users'],
+        'roles'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Roles & Permissions'],
+        'departments'  => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Departments'],
+        'designations' => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Designations'],
     ];
 
     public function run(): void
@@ -46,7 +46,7 @@ class RolePermissionSeeder extends Seeder
         // ---- Roles --------------------------------------------------------
         $admin   = Role::updateOrCreate(['code' => 'admin'],   ['name' => 'Admin',   'is_super' => true,  'status' => 1]);
         $manager = Role::updateOrCreate(['code' => 'manager'], ['name' => 'Manager', 'is_super' => false, 'status' => 1]);
-        $member  = Role::updateOrCreate(['code' => 'member'],  ['name' => 'Member',  'is_super' => false, 'status' => 1]);
+        $member  = Role::updateOrCreate(['code' => 'employee'], ['name' => 'Employee', 'is_super' => false, 'status' => 1]);
 
         // Manager: everything except admin modules (users, roles, departments, designations).
         $managerPerms = Permission::whereNotIn('module', ['users', 'roles', 'departments', 'designations'])->pluck('id');

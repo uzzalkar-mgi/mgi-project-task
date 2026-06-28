@@ -14,20 +14,12 @@ class TimelineController extends Controller
         $user = $request->user();
 
         $query = Project::query()
+            ->visibleTo($user)
             ->with([
                 'tasks' => fn ($q) => $q->orderBy('start_date')->orderBy('due_date'),
                 'milestones' => fn ($q) => $q->orderBy('date'),
             ])
             ->orderBy('start_date');
-
-        if (! $user->hasPermission('projects.create') && ! $user->isSuperAdmin()) {
-            $query->where(function ($w) use ($user) {
-                $w->where('lead_user_id', $user->id)
-                    ->orWhere('primary_responsible_id', $user->id)
-                    ->orWhere('secondary_responsible_id', $user->id)
-                    ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
-            });
-        }
 
         $projects = $query->get()->map(fn (Project $p) => [
             'uuid'       => $p->uuid,

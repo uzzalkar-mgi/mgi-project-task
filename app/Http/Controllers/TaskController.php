@@ -17,18 +17,7 @@ class TaskController extends Controller
     /** Projects this user is allowed to see / attach tasks to. */
     private function visibleProjects(User $user)
     {
-        $q = Project::query()->orderBy('name');
-
-        if (! $user->hasPermission('projects.create') && ! $user->isSuperAdmin()) {
-            $q->where(function ($w) use ($user) {
-                $w->where('lead_user_id', $user->id)
-                    ->orWhere('primary_responsible_id', $user->id)
-                    ->orWhere('secondary_responsible_id', $user->id)
-                    ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
-            });
-        }
-
-        return $q;
+        return Project::query()->visibleTo($user)->orderBy('name');
     }
 
     public function index(Request $request): Response
@@ -87,6 +76,9 @@ class TaskController extends Controller
             'assignee_ids.*'  => ['exists:users,id'],
         ]);
 
+        // Can only attach a task to a project the user can access.
+        abort_unless($this->visibleProjects($request->user())->whereKey($data['project_id'])->exists(), 403);
+
         $task = Task::create([
             ...collect($data)->except('assignee_ids')->all(),
             'reporter_id' => $request->user()->id,
@@ -95,6 +87,53 @@ class TaskController extends Controller
         $task->assignees()->sync($data['assignee_ids'] ?? []);
 
         return redirect()->route('tasks.index')->with('status', 'Task created.');
+    }
+
+    /** Task detail + threaded comments. */
+    public function show(Request $request, Task $task): Response
+    {
+        $user = $request->user();
+        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists(), 403);
+
+        $task->load([
+            'project:id,uuid,name',
+            'assignees:id,name',
+            'reporter:id,name',
+            'comments' => fn ($q) => $q->whereNull('parent_id')->with([
+                'author:id,name',
+                'attachments',
+                'replies' => fn ($r) => $r->with(['author:id,name', 'attachments'])->orderBy('created_at'),
+            ])->orderBy('created_at'),
+        ]);
+
+        $mapComment = fn ($c) => [
+            'id'          => $c->id,
+            'body'        => $c->body,
+            'author'      => $c->author?->name,
+            'created_at'  => $c->created_at?->diffForHumans(),
+            'attachments' => $c->attachments->map(fn ($a) => [
+                'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+            ]),
+        ];
+
+        return Inertia::render('Tasks/Show', [
+            'task' => [
+                'uuid'        => $task->uuid,
+                'title'       => $task->title,
+                'description' => $task->description,
+                'status'      => $task->status,
+                'priority'    => $task->priority,
+                'due_date'    => $task->due_date?->toDateString(),
+                'project'     => $task->project?->name,
+                'project_uuid' => $task->project?->uuid,
+                'reporter'    => $task->reporter?->name,
+                'assignees'   => $task->assignees->pluck('name'),
+            ],
+            'comments' => $task->comments->map(fn ($c) => [
+                ...$mapComment($c),
+                'replies' => $c->replies->map($mapComment),
+            ]),
+        ]);
     }
 
     /**
@@ -123,6 +162,7 @@ class TaskController extends Controller
     public function updateStatus(Request $request, Task $task): RedirectResponse
     {
         $task->loadMissing('assignees:id');
+        abort_unless($this->visibleProjects($request->user())->whereKey($task->project_id)->exists(), 403);
         abort_unless($this->canChangeStatus($request->user(), $task), 403);
 
         $data = $request->validate([
@@ -138,6 +178,7 @@ class TaskController extends Controller
     public function uploadAttachment(Request $request, Task $task): RedirectResponse
     {
         $task->loadMissing('assignees:id');
+        abort_unless($this->visibleProjects($request->user())->whereKey($task->project_id)->exists(), 403);
         abort_unless($this->canModify($request->user(), $task), 403);
 
         $request->validate([

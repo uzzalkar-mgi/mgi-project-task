@@ -26,7 +26,8 @@
       "Bash(find src *)",
       "Bash(ls \"src/app/\\(app\\)\")",
       "Bash(git -c user.name=\"uzzal.kar\" -c user.email=\"uzzal.kar@mgi.org\" commit -q -m \"docs: project README for PTS\")",
-      "Bash(echo \"pushed: $?\")"
+      "Bash(echo \"pushed: $?\")",
+      "Bash(grep -n \"use App\\\\\\\\\\\\\\\\Models\\\\\\\\\\\\\\\\Department\" app/Http/Controllers/DesignationController.php)"
     ]
   }
 }

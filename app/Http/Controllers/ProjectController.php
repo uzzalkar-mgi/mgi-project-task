@@ -22,22 +22,13 @@ class ProjectController extends Controller
         $user = $request->user();
 
         $query = Project::query()
+            ->visibleTo($user)
             ->with(['lead:id,name', 'primaryResponsible:id,name', 'tags:id,name'])
             ->withCount([
                 'tasks',
                 'tasks as completed_tasks_count' => fn ($q) => $q->where('status', 'done'),
             ])
             ->latest();
-
-        // Members only see projects they lead, own or belong to.
-        if (! $user->hasPermission('projects.create') && ! $user->isSuperAdmin()) {
-            $query->where(function ($q) use ($user) {
-                $q->where('lead_user_id', $user->id)
-                    ->orWhere('primary_responsible_id', $user->id)
-                    ->orWhere('secondary_responsible_id', $user->id)
-                    ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
-            });
-        }
 
         $projects = $query->get()->map(fn (Project $p) => [
             'uuid'        => $p->uuid,
@@ -116,8 +107,10 @@ class ProjectController extends Controller
     }
 
     /** Project detail with tasks. */
-    public function show(Project $project): Response
+    public function show(Request $request, Project $project): Response
     {
+        abort_unless(Project::whereKey($project->id)->visibleTo($request->user())->exists(), 403);
+
         $project->load([
             'lead:id,name', 'primaryResponsible:id,name', 'secondaryResponsible:id,name',
             'members:id,name', 'tags:id,name',

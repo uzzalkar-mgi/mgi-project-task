@@ -178,7 +178,7 @@ class UserController extends Controller
         return [
             'roles'        => Role::active()->orderBy('id')->get(['id', 'name']),
             'departments'  => Department::active()->orderBy('name')->get(['id', 'name']),
-            'designations' => Designation::active()->orderBy('name')->get(['id', 'name', 'department_id']),
+            'designations' => Designation::active()->orderBy('name')->get(['id', 'name']),
         ];
     }
 
@@ -187,7 +187,7 @@ class UserController extends Controller
         return $request->validate([
             'name'           => ['required', 'string', 'max:255'],
             'email'          => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user?->id)],
-            'employee_id'    => ['nullable', 'string', 'max:255', Rule::unique('users')->ignore($user?->id)],
+            'employee_id'    => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user?->id)],
             'office_contact' => ['nullable', 'string', 'max:30', Rule::unique('users')->ignore($user?->id)],
             'department_id'  => ['nullable', 'exists:departments,id'],
             'designation_id' => ['nullable', 'exists:designations,id'],

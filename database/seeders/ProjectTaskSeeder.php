@@ -13,9 +13,11 @@ class ProjectTaskSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin   = User::where('email', 'admin@mgi.org')->first();
-        $manager = User::where('email', 'manager@mgi.org')->first();
-        $member  = User::where('email', 'member@mgi.org')->first();
+        // Resolve sample actors by role (emails differ per environment).
+        $byRole  = fn(string $code) => User::query()->whereHas('roles', fn($q) => $q->where('code', $code))->orderBy('id')->first();
+        $admin   = $byRole('admin');
+        $manager = $byRole('manager');
+        $member  = $byRole('employee') ?? $manager;
 
         $fmcgTag   = Tag::updateOrCreate(['slug' => 'fmcg'],   ['name' => 'FMCG']);
         $cementTag = Tag::updateOrCreate(['slug' => 'cement'], ['name' => 'Cement']);

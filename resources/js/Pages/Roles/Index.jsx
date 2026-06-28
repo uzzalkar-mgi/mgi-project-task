@@ -8,7 +8,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
-const CORE = ['admin', 'manager', 'member'];
+const CORE = ['admin', 'manager', 'employee'];
 
 export default function Index({ roles }) {
     const { can } = usePermissions();

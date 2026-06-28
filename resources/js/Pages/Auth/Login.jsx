@@ -9,7 +9,7 @@ const FEATURES = [
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
+        employee_id: '',
         password: '',
         remember: false,
     });
@@ -73,7 +73,7 @@ export default function Login({ status, canResetPassword }) {
 
                         <div>
                             <h3 className="text-2xl font-bold tracking-tight text-slate-900">Sign in to your account</h3>
-                            <p className="mt-1 text-sm text-slate-500">Use your email and password.</p>
+                            <p className="mt-1 text-sm text-slate-500">Use your employee ID and password.</p>
                         </div>
 
                         {status && (
@@ -83,29 +83,29 @@ export default function Login({ status, canResetPassword }) {
                         )}
 
                         <form onSubmit={submit} className="space-y-4">
-                            {/* Email */}
+                            {/* Employee ID */}
                             <div>
-                                <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                                    Email <span className="text-rose-500">*</span>
+                                <label htmlFor="employee_id" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                                    Employee ID <span className="text-rose-500">*</span>
                                 </label>
                                 <div className="relative">
                                     <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="3" y="5" width="18" height="14" rx="2" />
-                                        <path d="m3 7 9 6 9-6" />
+                                        <circle cx="12" cy="8" r="4" />
+                                        <path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" />
                                     </svg>
                                     <input
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
+                                        id="employee_id"
+                                        type="text"
+                                        name="employee_id"
+                                        value={data.employee_id}
+                                        onChange={(e) => setData('employee_id', e.target.value)}
                                         autoComplete="username"
                                         autoFocus
-                                        placeholder="you@mgi.org"
+                                        placeholder="e.g. MGI-1001"
                                         className="w-full rounded-lg border border-slate-300 py-2.5 pl-11 pr-3 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                                     />
                                 </div>
-                                {errors.email && <p className="mt-1.5 text-sm text-rose-500">{errors.email}</p>}
+                                {errors.employee_id && <p className="mt-1.5 text-sm text-rose-500">{errors.employee_id}</p>}
                             </div>
 
                             {/* Password */}

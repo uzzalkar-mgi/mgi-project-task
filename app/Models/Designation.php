@@ -11,14 +11,9 @@ class Designation extends Model
 {
     use HasStatus;
 
-    protected $fillable = ['name', 'department_id', 'status'];
+    protected $fillable = ['name', 'status'];
 
-    protected $casts = ['status' => 'integer', 'department_id' => 'integer'];
-
-    public function department(): BelongsTo
-    {
-        return $this->belongsTo(Department::class);
-    }
+    protected $casts = ['status' => 'integer'];
 
     public function users(): HasMany
     {

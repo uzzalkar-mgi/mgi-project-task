@@ -28,7 +28,7 @@ class ProfileController extends Controller
             'department'      => $user->department?->name,
             'designation'     => $user->designation?->name,
             'departments'     => \App\Models\Department::active()->orderBy('name')->get(['id', 'name']),
-            'designations'    => \App\Models\Designation::active()->orderBy('name')->get(['id', 'name', 'department_id']),
+            'designations'    => \App\Models\Designation::active()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

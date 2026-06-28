@@ -14,20 +14,11 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $user    = $request->user();
-        $isAll   = $user->hasPermission('projects.create') || $user->isSuperAdmin();
         $today   = Carbon::today();
         $monthStart = Carbon::today()->startOfMonth();
 
-        // Projects visible to this user.
-        $projectScope = Project::query();
-        if (! $isAll) {
-            $projectScope->where(function ($q) use ($user) {
-                $q->where('lead_user_id', $user->id)
-                    ->orWhere('primary_responsible_id', $user->id)
-                    ->orWhere('secondary_responsible_id', $user->id)
-                    ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
-            });
-        }
+        // Projects visible to this user (membership-based; super-admin = all).
+        $projectScope = Project::query()->visibleTo($user);
         $projectIds = (clone $projectScope)->pluck('id');
 
         // My tasks = tasks assigned to me.

@@ -1,6 +1,5 @@
 import { Card, PageHeader } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
-import { Combobox } from '@/Components/ui/Combobox';
 import { SearchInput } from '@/Components/ui/SearchInput';
 import { StatusToggle } from '@/Components/ui/StatusToggle';
 import { StatusActionButton } from '@/Components/ui/StatusActionButton';
@@ -11,14 +10,13 @@ import { useState } from 'react';
 
 const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
 
-export default function Index({ designations, departments }) {
+export default function Index({ designations }) {
     const { can } = usePermissions();
     const [q, setQ] = useState('');
     const [editing, setEditing] = useState(null);
-    const { data, setData, post, patch, processing, errors, reset } = useForm({ name: '', department_id: '', status: 1 });
+    const { data, setData, post, patch, processing, errors, reset } = useForm({ name: '', status: 1 });
 
-    const deptOpts = departments.map((d) => ({ value: d.id, label: d.name }));
-    const open = (d) => { setEditing(d ?? {}); reset(); setData({ name: d?.name ?? '', department_id: d?.department_id ?? '', status: d?.status ?? 1 }); };
+    const open = (d) => { setEditing(d ?? {}); reset(); setData({ name: d?.name ?? '', status: d?.status ?? 1 }); };
     const close = () => setEditing(null);
     const submit = (e) => {
         e.preventDefault();
@@ -27,7 +25,7 @@ export default function Index({ designations, departments }) {
     };
     const remove = (d) => { if (confirm(`Delete "${d.name}"?`)) router.delete(route('designations.destroy', d.id), { preserveScroll: true }); };
 
-    const filtered = designations.filter((d) => `${d.name} ${d.department ?? ''}`.toLowerCase().includes(q.toLowerCase()));
+    const filtered = designations.filter((d) => d.name.toLowerCase().includes(q.toLowerCase()));
 
     return (
         <AuthenticatedLayout
@@ -53,7 +51,6 @@ export default function Index({ designations, departments }) {
                     <thead className="border-y border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
                         <tr>
                             <th className="px-4 py-3">Name</th>
-                            <th className="px-4 py-3">Department</th>
                             <th className="px-4 py-3">Users</th>
                             <th className="px-4 py-3">Status</th>
                             <th className="px-4 py-3 text-right">Actions</th>
@@ -63,7 +60,6 @@ export default function Index({ designations, departments }) {
                         {filtered.map((d) => (
                             <tr key={d.id} className="hover:bg-slate-50">
                                 <td className="px-4 py-3 font-medium text-slate-800">{d.name}</td>
-                                <td className="px-4 py-3 text-slate-500">{d.department ?? '—'}</td>
                                 <td className="px-4 py-3 text-slate-500">{d.users_count}</td>
                                 <td className="px-4 py-3"><StatusToggle active={d.status === 1} url={route('designations.status', d.id)} canToggle={can('designations.update')} /></td>
                                 <td className="px-4 py-3">
@@ -75,7 +71,7 @@ export default function Index({ designations, departments }) {
                                 </td>
                             </tr>
                         ))}
-                        {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">No designations.</td></tr>}
+                        {filtered.length === 0 && <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-400">No designations.</td></tr>}
                     </tbody>
                 </table>
             </Card>
@@ -88,9 +84,6 @@ export default function Index({ designations, departments }) {
                         <label className="mb-1.5 block text-sm font-semibold text-slate-700">Name <span className="text-rose-500">*</span></label>
                         <input className={inputCls} value={data.name} onChange={(e) => setData('name', e.target.value)} autoFocus />
                         {errors.name && <p className="mt-1.5 text-sm text-rose-500">{errors.name}</p>}
-                        <label className="mb-1.5 mt-4 block text-sm font-semibold text-slate-700">Department</label>
-                        <Combobox options={deptOpts} value={data.department_id} onChange={(v) => setData('department_id', v)} placeholder="Select department…" />
-                        {errors.department_id && <p className="mt-1.5 text-sm text-rose-500">{errors.department_id}</p>}
                         <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
                             <input type="checkbox" checked={data.status === 1} onChange={(e) => setData('status', e.target.checked ? 1 : 0)} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" /> Active
                         </label>

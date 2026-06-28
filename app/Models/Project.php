@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -35,6 +36,25 @@ class Project extends Model
         'start_date' => 'date',
         'end_date'   => 'date',
     ];
+
+    /**
+     * Scope to projects the user may access.
+     * Super-admin sees all; everyone else (incl. Managers) sees only projects
+     * they lead, are responsible for, or are a member of.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $w) use ($user) {
+            $w->where('lead_user_id', $user->id)
+                ->orWhere('primary_responsible_id', $user->id)
+                ->orWhere('secondary_responsible_id', $user->id)
+                ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
+        });
+    }
 
     // ---- Accountability chain (PRD §9.2) --------------------------------
 
