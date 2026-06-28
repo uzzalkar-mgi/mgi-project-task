@@ -51,7 +51,6 @@ export default function Index({ departments }) {
                     <thead className="border-y border-slate-100 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
                         <tr>
                             <th className="px-4 py-3">Name</th>
-                            <th className="px-4 py-3">Designations</th>
                             <th className="px-4 py-3">Users</th>
                             <th className="px-4 py-3">Status</th>
                             <th className="px-4 py-3 text-right">Actions</th>
@@ -61,7 +60,6 @@ export default function Index({ departments }) {
                         {filtered.map((d) => (
                             <tr key={d.id} className="hover:bg-slate-50">
                                 <td className="px-4 py-3 font-medium text-slate-800">{d.name}</td>
-                                <td className="px-4 py-3 text-slate-500">{d.designations_count}</td>
                                 <td className="px-4 py-3 text-slate-500">{d.users_count}</td>
                                 <td className="px-4 py-3"><StatusToggle active={d.status === 1} url={route('departments.status', d.id)} canToggle={can('departments.update')} /></td>
                                 <td className="px-4 py-3">
@@ -73,7 +71,7 @@ export default function Index({ departments }) {
                                 </td>
                             </tr>
                         ))}
-                        {filtered.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-400">No departments.</td></tr>}
+                        {filtered.length === 0 && <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-400">No departments.</td></tr>}
                     </tbody>
                 </table>
             </Card>

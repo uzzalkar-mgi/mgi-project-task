@@ -96,7 +96,7 @@ class TaskController extends Controller
             'parent_task_id'  => ['nullable', 'exists:tasks,id'],
             'title'           => ['required', 'string', 'max:255'],
             'description'     => ['nullable', 'string'],
-            'start_date'      => ['nullable', 'date'],
+            'start_date'      => ['required', 'date'],
             'due_date'        => ['required', 'date', 'after_or_equal:start_date'],
             'priority'        => ['required', 'in:urgent,high,normal,low'],
             'status'          => ['required', 'in:todo,in_progress,under_review,done,blocked'],
@@ -162,7 +162,7 @@ class TaskController extends Controller
             'parent_task_id'  => ['nullable', 'exists:tasks,id', 'different:'.$task->id],
             'title'           => ['required', 'string', 'max:255'],
             'description'     => ['nullable', 'string'],
-            'start_date'      => ['nullable', 'date'],
+            'start_date'      => ['required', 'date'],
             'due_date'        => ['required', 'date', 'after_or_equal:start_date'],
             'priority'        => ['required', 'in:urgent,high,normal,low'],
             'status'          => ['required', 'in:todo,in_progress,under_review,done,blocked'],
@@ -224,7 +224,7 @@ class TaskController extends Controller
                     'uuid' => $s->uuid, 'title' => $s->title, 'status' => $s->status, 'due_date' => $s->due_date?->toDateString(),
                 ]),
                 'attachments' => $task->attachments->map(fn ($a) => [
-                    'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+                    'title' => $a->title, 'url' => route('attachments.show', $a->id), 'file_type' => $a->file_type,
                 ]),
             ],
             'comments' => $this->commentTree($task),
@@ -277,7 +277,7 @@ class TaskController extends Controller
             'created_at'  => $c->created_at?->diffForHumans(),
             'can_delete'  => $isSuper || $c->user_id === $userId,
             'attachments' => $c->attachments->map(fn ($a) => [
-                'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+                'title' => $a->title, 'url' => route('attachments.show', $a->id), 'file_type' => $a->file_type,
             ]),
         ];
 

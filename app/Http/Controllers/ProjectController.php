@@ -140,7 +140,7 @@ class ProjectController extends Controller
                     'due_date'  => $t->due_date?->toDateString(),
                     'assignees' => $t->assignees->pluck('name'),
                     'attachments' => $t->attachments->map(fn ($a) => [
-                        'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+                        'title' => $a->title, 'url' => route('attachments.show', $a->id), 'file_type' => $a->file_type,
                     ]),
                 ]),
             ],

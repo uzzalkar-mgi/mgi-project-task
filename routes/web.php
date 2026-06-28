@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
@@ -44,6 +45,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/timeline', [TimelineController::class, 'index'])->name('timeline.index');
     Route::get('/milestones', [MilestoneController::class, 'index'])->name('milestones.index');
+
+    Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
 
     Route::patch('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');

@@ -14,11 +14,6 @@ class Department extends Model
 
     protected $casts = ['status' => 'integer'];
 
-    public function designations(): HasMany
-    {
-        return $this->hasMany(Designation::class);
-    }
-
     public function users(): HasMany
     {
         return $this->hasMany(User::class);

@@ -81,7 +81,7 @@ export default function Create({ projects, users, parentTasks = [] }) {
                                 <RichTextEditor value={data.description} onChange={(html) => setData('description', html)} />
                             </Field>
                         </div>
-                        <Field label="Start Date" error={errors.start_date}>
+                        <Field label="Start Date" required error={errors.start_date}>
                             <input type="date" className={inputCls} value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
                         </Field>
                         <Field label="End Date" required error={errors.due_date}>

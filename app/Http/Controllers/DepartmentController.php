@@ -15,13 +15,12 @@ class DepartmentController extends Controller
     {
         $this->authorize('permission', 'departments.view');
 
-        $departments = Department::withCount(['designations', 'users'])->orderBy('name')->get()
+        $departments = Department::withCount(['users'])->orderBy('name')->get()
             ->map(fn (Department $d) => [
-                'id'                 => $d->id,
-                'name'               => $d->name,
-                'status'             => $d->status,
-                'designations_count' => $d->designations_count,
-                'users_count'        => $d->users_count,
+                'id'          => $d->id,
+                'name'        => $d->name,
+                'status'      => $d->status,
+                'users_count' => $d->users_count,
             ]);
 
         return Inertia::render('Settings/Departments/Index', ['departments' => $departments]);
