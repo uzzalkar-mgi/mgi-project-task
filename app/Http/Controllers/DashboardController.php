@@ -76,11 +76,33 @@ class DashboardController extends Controller
             ->groupBy('status')
             ->pluck('c', 'status');
 
+        // Project-wise task status counts (for the bar chart).
+        $statuses = ['todo', 'in_progress', 'under_review', 'done', 'blocked'];
+        $projectStatus = Project::whereIn('id', $projectIds)
+            ->withCount(collect($statuses)->mapWithKeys(fn ($s) => [
+                "tasks as {$s}_count" => fn ($q) => $q->where('status', $s),
+            ])->all())
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Project $p) => [
+                'uuid'    => $p->uuid,
+                'name'    => $p->name,
+                'counts'  => [
+                    'todo'         => $p->todo_count,
+                    'in_progress'  => $p->in_progress_count,
+                    'under_review' => $p->under_review_count,
+                    'done'         => $p->done_count,
+                    'blocked'      => $p->blocked_count,
+                ],
+                'total'   => $p->todo_count + $p->in_progress_count + $p->under_review_count + $p->done_count + $p->blocked_count,
+            ]);
+
         return Inertia::render('Dashboard', [
             'stats'           => $stats,
             'myTasks'         => $myTaskList,
             'health'          => $health,
             'statusBreakdown' => $statusBreakdown,
+            'projectStatus'   => $projectStatus,
         ]);
     }
 }

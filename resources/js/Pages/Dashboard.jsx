@@ -9,12 +9,61 @@ const STATUS_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 
 const RAG_TONE = { red: 'red', amber: 'amber', green: 'green' };
 const RAG_BAR = { red: 'bg-rose-500', amber: 'bg-amber-500', green: 'bg-emerald-500' };
 
+const STATUS_BARS = [
+    { key: 'todo', label: 'To Do', bar: 'bg-slate-400' },
+    { key: 'in_progress', label: 'In Progress', bar: 'bg-brand-500' },
+    { key: 'under_review', label: 'Under Review', bar: 'bg-amber-500' },
+    { key: 'done', label: 'Done', bar: 'bg-emerald-500' },
+    { key: 'blocked', label: 'Blocked', bar: 'bg-rose-500' },
+];
+
+function StatusBarChart({ projects }) {
+    const max = Math.max(1, ...projects.flatMap((p) => STATUS_BARS.map((s) => p.counts[s.key])));
+    return (
+        <Card className="p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <SectionTitle>Tasks by Status — per Project</SectionTitle>
+                <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+                    {STATUS_BARS.map((s) => <span key={s.key} className="flex items-center gap-1.5"><span className={`h-3 w-3 rounded ${s.bar}`} /> {s.label}</span>)}
+                </div>
+            </div>
+            {projects.length === 0 ? (
+                <p className="text-sm text-slate-400">No projects to chart.</p>
+            ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {projects.map((p) => (
+                        <div key={p.uuid} className="rounded-lg border border-slate-100 p-4">
+                            <div className="mb-3 flex items-center justify-between">
+                                <Link href={`/projects/${p.uuid}`} className="truncate text-sm font-semibold text-slate-800 hover:text-brand-700">{p.name}</Link>
+                                <span className="text-xs text-slate-400">{p.total} task{p.total === 1 ? '' : 's'}</span>
+                            </div>
+                            <div className="flex h-32 items-end justify-between gap-2">
+                                {STATUS_BARS.map((s) => {
+                                    const c = p.counts[s.key];
+                                    return (
+                                        <div key={s.key} className="flex flex-1 flex-col items-center gap-1">
+                                            <span className="text-xs font-semibold text-slate-600">{c}</span>
+                                            <div className="flex w-full items-end" style={{ height: '100%' }}>
+                                                <div className={`w-full rounded-t ${s.bar}`} style={{ height: `${(c / max) * 100}%`, minHeight: c > 0 ? '4px' : '0' }} title={`${s.label}: ${c}`} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </Card>
+    );
+}
+
 function fmt(d) {
     if (!d) return 'No due date';
     return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
 }
 
-export default function Dashboard({ stats, myTasks, health }) {
+export default function Dashboard({ stats, myTasks, health, projectStatus = [] }) {
     const user = usePage().props.auth.user;
     const { roles } = usePermissions();
     const role = roles?.[0] ? roles[0].charAt(0).toUpperCase() + roles[0].slice(1) : 'Member';
@@ -31,6 +80,11 @@ export default function Dashboard({ stats, myTasks, health }) {
                 <StatCard label="My Open Tasks" value={String(stats.my_tasks)} hint="Assigned to you" tone="green" icon={<Icon name="tasks" className="h-5 w-5" />} />
                 <StatCard label="Overdue" value={String(stats.overdue)} hint="Needs attention" tone="amber" icon={<Icon name="bell" className="h-5 w-5" />} />
                 <StatCard label="Completed" value={String(stats.completed_month)} hint="This month" tone="purple" icon={<Icon name="milestones" className="h-5 w-5" />} />
+            </div>
+
+            {/* Project-wise task status bar chart */}
+            <div className="mt-6">
+                <StatusBarChart projects={projectStatus} />
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-3">
