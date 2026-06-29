@@ -28,6 +28,12 @@ function fmt(d) {
     return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+// Strip HTML tags → plain text for list previews.
+function plain(html) {
+    if (!html) return '';
+    return html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function ProjectCard({ p }) {
     return (
         <Card className="flex flex-col p-5">
@@ -36,7 +42,7 @@ function ProjectCard({ p }) {
                 <Badge tone={STATUS_TONE[p.status] ?? 'slate'}>{STATUS_LABEL[p.status] ?? p.status}</Badge>
             </div>
 
-            <p className="mt-1 line-clamp-2 text-sm text-slate-500">{p.description || 'No description.'}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-slate-500">{plain(p.description) || 'No description.'}</p>
 
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <Badge tone={PRIORITY_TONE[p.priority] ?? 'slate'}>{p.priority}</Badge>
