@@ -22,7 +22,7 @@ class UserController extends Controller
 
         $search = trim((string) $request->input('q', ''));
 
-        $users = User::with(['roles:id,name,code', 'department:id,name', 'designation:id,name'])
+        $users = User::with(['roles:id,name,code,is_super', 'department:id,name', 'designation:id,name'])
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($w) use ($search) {
                     $w->where('name', 'ilike', "%{$search}%")
@@ -43,6 +43,7 @@ class UserController extends Controller
                 'designation' => $u->designation?->name,
                 'status'      => $u->status,
                 'roles'       => $u->roles->pluck('name'),
+                'is_super'    => $u->roles->contains(fn ($r) => $r->is_super),
                 'avatar_url'  => $u->avatar_url,
             ]);
 
@@ -50,6 +51,7 @@ class UserController extends Controller
             'users'     => $users,
             'filters'   => ['q' => $search],
             'canManage' => $request->user()->hasPermission('users.create'),
+            'iAmSuper'  => $request->user()->isSuperAdmin(),
         ]);
     }
 
@@ -113,9 +115,10 @@ class UserController extends Controller
         return Inertia::render('Users/Form', $this->formOptions() + ['user' => null, 'assigned' => []]);
     }
 
-    public function edit(User $user): Response
+    public function edit(Request $request, User $user): Response
     {
         $this->authorize('permission', 'users.update');
+        $this->guardSuperAdmin($request->user(), $user);
 
         return Inertia::render('Users/Form', $this->formOptions() + [
             'user' => [
@@ -137,6 +140,7 @@ class UserController extends Controller
         $this->authorize('permission', 'users.create');
 
         $data = $this->validateUser($request);
+        $this->guardSuperRoleAssignment($request->user(), $data['role_ids'] ?? []);
 
         $user = User::create([
             'name'           => $data['name'],
@@ -157,8 +161,10 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $this->authorize('permission', 'users.update');
+        $this->guardSuperAdmin($request->user(), $user);
 
         $data = $this->validateUser($request, $user);
+        $this->guardSuperRoleAssignment($request->user(), $data['role_ids'] ?? []);
 
         $user->fill([
             'name'           => $data['name'],
@@ -181,12 +187,31 @@ class UserController extends Controller
     }
 
     /** Inline active/inactive toggle. */
-    public function toggleStatus(User $user): RedirectResponse
+    public function toggleStatus(Request $request, User $user): RedirectResponse
     {
         $this->authorize('permission', 'users.update');
+        $this->guardSuperAdmin($request->user(), $user);
         $user->toggleStatus();
 
         return back();
+    }
+
+    /** Only a Super Admin may edit/deactivate another Super Admin. */
+    private function guardSuperAdmin(User $actor, User $target): void
+    {
+        $target->loadMissing('roles');
+        $targetIsSuper = $target->roles->contains(fn ($r) => $r->is_super);
+        abort_if($targetIsSuper && ! $actor->isSuperAdmin(), 403, 'Only a Super Admin can manage a Super Admin.');
+    }
+
+    /** Only a Super Admin may grant a super-admin role (no privilege escalation). */
+    private function guardSuperRoleAssignment(User $actor, array $roleIds): void
+    {
+        if ($actor->isSuperAdmin()) {
+            return;
+        }
+        $grantingSuper = Role::whereIn('id', $roleIds)->where('is_super', true)->exists();
+        abort_if($grantingSuper, 403, 'Only a Super Admin can assign the Super Admin role.');
     }
 
     private function formOptions(): array

@@ -21,7 +21,7 @@ function initials(name = '') {
 
 const ROLE_TONE = { 'Super Admin': 'red', Admin: 'blue', Manager: 'green', Employee: 'amber', Member: 'amber' };
 
-export default function Index({ users, filters, canManage }) {
+export default function Index({ users, filters, canManage, iAmSuper = false }) {
     const { can } = usePermissions();
     const [q, setQ] = useState(filters?.q ?? '');
     const first = useRef(true);
@@ -95,7 +95,7 @@ export default function Index({ users, filters, canManage }) {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <StatusToggle active={u.status === 1} url={route('users.status', u.uuid)} canToggle={can('users.update')} />
+                                        <StatusToggle active={u.status === 1} url={route('users.status', u.uuid)} canToggle={can('users.update') && (!u.is_super || iAmSuper)} />
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
@@ -105,12 +105,12 @@ export default function Index({ users, filters, canManage }) {
                                             <Link href={route('users.show', u.uuid)} className="flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50" title="Created tasks (project-wise)">
                                                 <Icon name="tasks" className="h-3.5 w-3.5" /> Tasks
                                             </Link>
-                                            {can('users.update') && (
+                                            {can('users.update') && (!u.is_super || iAmSuper) && (
                                                 <Link href={route('users.edit', u.uuid)} className="flex items-center gap-1 rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50">
                                                     <Icon name="edit" className="h-3.5 w-3.5" /> Edit
                                                 </Link>
                                             )}
-                                            {can('users.update') && (
+                                            {can('users.update') && (!u.is_super || iAmSuper) && (
                                                 <button
                                                     onClick={() => toggleStatus(u)}
                                                     className={`flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition ${u.status === 1 ? 'border-rose-200 text-rose-600 hover:bg-rose-50' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'}`}
