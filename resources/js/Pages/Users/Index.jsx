@@ -19,7 +19,7 @@ function initials(name = '') {
     return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || '?';
 }
 
-const ROLE_TONE = { Admin: 'blue', Manager: 'green', Employee: 'amber', Member: 'amber' };
+const ROLE_TONE = { 'Super Admin': 'red', Admin: 'blue', Manager: 'green', Employee: 'amber', Member: 'amber' };
 
 export default function Index({ users, filters, canManage }) {
     const { can } = usePermissions();

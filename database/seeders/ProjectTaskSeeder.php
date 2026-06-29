@@ -15,8 +15,8 @@ class ProjectTaskSeeder extends Seeder
     {
         // Resolve sample actors by role (emails differ per environment).
         $byRole  = fn(string $code) => User::query()->whereHas('roles', fn($q) => $q->where('code', $code))->orderBy('id')->first();
-        $admin   = $byRole('admin');
-        $manager = $byRole('manager');
+        $admin   = $byRole('admin') ?? $byRole('super_admin');
+        $manager = $byRole('manager') ?? $admin;
         $member  = $byRole('employee') ?? $manager;
 
         $fmcgTag   = Tag::updateOrCreate(['slug' => 'fmcg'],   ['name' => 'FMCG']);

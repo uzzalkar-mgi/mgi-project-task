@@ -11,8 +11,8 @@ class RolePermissionSeeder extends Seeder
 {
     /**
      * Module x action permission catalogue. `menu` drives sidebar visibility;
-     * the rest gate controller actions. Roles are assigned subsets of these
-     * (Admin is super-admin and implicitly holds all via Gate::before).
+     * the rest gate controller actions. Roles are assigned subsets of these.
+     * Super Admin is the only is_super role (holds all via Gate::before).
      */
     public const MODULES = [
         'dashboard'    => ['actions' => ['menu', 'view'],                                         'label' => 'Dashboard'],
@@ -44,14 +44,21 @@ class RolePermissionSeeder extends Seeder
         }
 
         // ---- Roles --------------------------------------------------------
-        $admin   = Role::updateOrCreate(['code' => 'admin'],   ['name' => 'Admin',   'is_super' => true,  'status' => 1]);
-        $manager = Role::updateOrCreate(['code' => 'manager'], ['name' => 'Manager', 'is_super' => false, 'status' => 1]);
+        // Super Admin: does anything (Gate::before bypass; permissions ignored).
+        Role::updateOrCreate(['code' => 'super_admin'], ['name' => 'Super Admin', 'is_super' => true, 'status' => 1]);
+
+        // The rest are menu + action permission driven (editable in the Roles UI).
+        $admin   = Role::updateOrCreate(['code' => 'admin'],    ['name' => 'Admin',    'is_super' => false, 'status' => 1]);
+        $manager = Role::updateOrCreate(['code' => 'manager'],  ['name' => 'Manager',  'is_super' => false, 'status' => 1]);
         $member  = Role::updateOrCreate(['code' => 'employee'], ['name' => 'Employee', 'is_super' => false, 'status' => 1]);
+
+        // Admin: full permission set (everything), but granted — not a super bypass.
+        $adminPerms = Permission::pluck('id');
 
         // Manager: everything except admin modules (users, roles, departments, designations).
         $managerPerms = Permission::whereNotIn('module', ['users', 'roles', 'departments', 'designations'])->pluck('id');
 
-        // Member: view projects/timeline/milestones; work on tasks; personal dashboard.
+        // Employee: view projects/timeline/milestones; work on tasks; personal dashboard.
         $memberPerms = Permission::whereIn('name', [
             'dashboard.menu', 'dashboard.view',
             'projects.menu', 'projects.view',
@@ -60,8 +67,8 @@ class RolePermissionSeeder extends Seeder
             'milestones.menu', 'milestones.view',
         ])->pluck('id');
 
+        $admin->permissions()->sync($adminPerms);
         $manager->permissions()->sync($managerPerms);
         $member->permissions()->sync($memberPerms);
-        $admin->permissions()->sync(Permission::pluck('id')); // explicit grant too (super bypass anyway)
     }
 }
