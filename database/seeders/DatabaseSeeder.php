@@ -32,11 +32,35 @@ class DatabaseSeeder extends Seeder
         );
         $manager->roles()->syncWithoutDetaching([$managerRole->id]);
 
-        $employee = User::updateOrCreate(
+        $employee1 = User::updateOrCreate(
             ['email' => 'sharifur.rahman@mgi.org'],
             ['name' => 'Sharifur Rahman', 'employee_id' => '122287', 'password' => Hash::make('122287'), 'status' => 1, 'role_id' => $employeeRole->id]
         );
-        $employee->roles()->syncWithoutDetaching([$employeeRole->id]);
+        $employee1->roles()->syncWithoutDetaching([$employeeRole->id]);
+
+        $employee2 = User::updateOrCreate(
+            ['email' => 'zubair.tareque@mgi.org'],
+            ['name' => 'Md. Zubair Bin Tareque', 'employee_id' => '097063', 'password' => Hash::make('097063'), 'status' => 1, 'role_id' => $employeeRole->id]
+        );
+        $employee2->roles()->syncWithoutDetaching([$employeeRole->id]);
+
+        $employee3 = User::updateOrCreate(
+            ['email' => 'asif.iqbal@mgi.org'],
+            ['name' => 'Sheikh Asif Iqbal', 'employee_id' => '118210', 'password' => Hash::make('118210'), 'status' => 1, 'role_id' => $employeeRole->id]
+        );
+        $employee3->roles()->syncWithoutDetaching([$employeeRole->id]);
+
+        $employee4 = User::updateOrCreate(
+            ['email' => 'ishtiaque.rahman@mgi.org'],
+            ['name' => 'Ishtiaque Rahman', 'employee_id' => '121442', 'password' => Hash::make('121442'), 'status' => 1, 'role_id' => $employeeRole->id]
+        );
+        $employee4->roles()->syncWithoutDetaching([$employeeRole->id]);
+
+        $employee5 = User::updateOrCreate(
+            ['email' => 'sina.amin@mgi.org'],
+            ['name' => 'Sina Ibn Amin', 'employee_id' => '161393', 'password' => Hash::make('161393'), 'status' => 1, 'role_id' => $employeeRole->id]
+        );
+        $employee5->roles()->syncWithoutDetaching([$employeeRole->id]);
 
         // $this->call(EmployeeSeeder::class);
         $this->call(DepartmentDesignationSeeder::class);

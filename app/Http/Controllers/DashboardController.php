@@ -31,8 +31,12 @@ class DashboardController extends Controller
             'completed_month' => (clone $myTasks)->where('status', 'done')->where('updated_at', '>=', $monthStart)->count(),
         ];
 
-        // My tasks list (open), soonest due first.
-        $myTaskList = (clone $myTasks)
+        // The stat cards above are cheap (indexed counts) and render immediately.
+        // Everything below is deferred — the page shell loads instantly and these
+        // stream in after, each with its own loader. Keeps the dashboard fast as
+        // task volume grows.
+
+        $myTasksDeferred = fn () => (clone $myTasks)
             ->whereNotIn('status', ['done'])
             ->with('project:id,uuid,name')
             ->orderByRaw('due_date is null, due_date asc')
@@ -48,8 +52,7 @@ class DashboardController extends Controller
                 'overdue'  => $t->due_date && $t->due_date->lt($today) && $t->status !== 'done',
             ]);
 
-        // Project health (RAG) — % done per visible project.
-        $health = Project::whereIn('id', $projectIds)
+        $healthDeferred = fn () => Project::whereIn('id', $projectIds)
             ->withCount([
                 'tasks',
                 'tasks as done_count' => fn ($q) => $q->where('status', 'done'),
@@ -70,39 +73,40 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Status breakdown across visible projects (for a future chart / summary).
-        $statusBreakdown = Task::whereIn('project_id', $projectIds)
-            ->selectRaw('status, count(*) as c')
-            ->groupBy('status')
-            ->pluck('c', 'status');
+        // Project-wise status counts — ONE grouped query (cheap at scale) instead of
+        // 5 subqueries per project.
+        $projectStatusDeferred = function () use ($projectIds) {
+            $counts = Task::whereIn('project_id', $projectIds)
+                ->selectRaw('project_id, status, count(*) as c')
+                ->groupBy('project_id', 'status')
+                ->get()
+                ->groupBy('project_id');
 
-        // Project-wise task status counts (for the bar chart).
-        $statuses = ['todo', 'in_progress', 'under_review', 'done', 'blocked'];
-        $projectStatus = Project::whereIn('id', $projectIds)
-            ->withCount(collect($statuses)->mapWithKeys(fn ($s) => [
-                "tasks as {$s}_count" => fn ($q) => $q->where('status', $s),
-            ])->all())
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Project $p) => [
-                'uuid'    => $p->uuid,
-                'name'    => $p->name,
-                'counts'  => [
-                    'todo'         => $p->todo_count,
-                    'in_progress'  => $p->in_progress_count,
-                    'under_review' => $p->under_review_count,
-                    'done'         => $p->done_count,
-                    'blocked'      => $p->blocked_count,
-                ],
-                'total'   => $p->todo_count + $p->in_progress_count + $p->under_review_count + $p->done_count + $p->blocked_count,
-            ]);
+            return Project::whereIn('id', $projectIds)->orderBy('name')->get(['id', 'uuid', 'name'])
+                ->map(function (Project $p) use ($counts) {
+                    $byStatus = ($counts[$p->id] ?? collect())->pluck('c', 'status');
+                    $c = fn ($s) => (int) ($byStatus[$s] ?? 0);
+                    $total = $byStatus->sum();
+
+                    return [
+                        'uuid'   => $p->uuid,
+                        'name'   => $p->name,
+                        'counts' => [
+                            'todo' => $c('todo'), 'in_progress' => $c('in_progress'),
+                            'under_review' => $c('under_review'), 'done' => $c('done'), 'blocked' => $c('blocked'),
+                        ],
+                        'total'  => $total,
+                    ];
+                })
+                ->filter(fn ($p) => $p['total'] > 0)
+                ->values();
+        };
 
         return Inertia::render('Dashboard', [
-            'stats'           => $stats,
-            'myTasks'         => $myTaskList,
-            'health'          => $health,
-            'statusBreakdown' => $statusBreakdown,
-            'projectStatus'   => $projectStatus,
+            'stats'         => $stats,
+            'myTasks'       => Inertia::defer($myTasksDeferred),
+            'health'        => Inertia::defer($healthDeferred),
+            'projectStatus' => Inertia::defer($projectStatusDeferred),
         ]);
     }
 }

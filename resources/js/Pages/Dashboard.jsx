@@ -2,7 +2,16 @@ import { Card, PageHeader, StatCard, SectionTitle, ProgressBar, Badge } from '@/
 import { Icon } from '@/Components/ui/Icon';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Deferred, Head, Link, usePage } from '@inertiajs/react';
+
+function Loading({ label = 'Loading…' }) {
+    return (
+        <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-brand-500" />
+            {label}
+        </div>
+    );
+}
 
 const PRIORITY_TONE = { urgent: 'red', high: 'amber', normal: 'blue', low: 'slate' };
 const STATUS_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' };
@@ -82,22 +91,25 @@ export default function Dashboard({ stats, myTasks, health, projectStatus = [] }
                 <StatCard label="Completed" value={String(stats.completed_month)} hint="This month" tone="purple" icon={<Icon name="milestones" className="h-5 w-5" />} />
             </div>
 
-            {/* Project-wise task status bar chart */}
+            {/* Project-wise task status bar chart (deferred) */}
             <div className="mt-6">
-                <StatusBarChart projects={projectStatus} />
+                <Deferred data="projectStatus" fallback={<Card className="p-5"><Loading label="Loading chart…" /></Card>}>
+                    <StatusBarChart projects={projectStatus ?? []} />
+                </Deferred>
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-3">
                 {/* My tasks */}
                 <Card className="p-5 lg:col-span-2">
                     <SectionTitle>My Tasks</SectionTitle>
-                    {myTasks.length === 0 ? (
+                    <Deferred data="myTasks" fallback={<Loading />}>
+                    {(myTasks ?? []).length === 0 ? (
                         <p className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">
                             No open tasks assigned to you. 🎉
                         </p>
                     ) : (
                         <ul className="divide-y divide-slate-100">
-                            {myTasks.map((t) => (
+                            {(myTasks ?? []).map((t) => (
                                 <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium text-slate-800">{t.title}</p>
@@ -111,16 +123,18 @@ export default function Dashboard({ stats, myTasks, health, projectStatus = [] }
                             ))}
                         </ul>
                     )}
+                    </Deferred>
                 </Card>
 
                 {/* Project health */}
                 <Card className="p-5">
                     <SectionTitle>Project Health</SectionTitle>
-                    {health.length === 0 ? (
+                    <Deferred data="health" fallback={<Loading />}>
+                    {(health ?? []).length === 0 ? (
                         <p className="text-xs text-slate-400">No active projects to report on.</p>
                     ) : (
                         <div className="space-y-4">
-                            {health.map((h) => (
+                            {(health ?? []).map((h) => (
                                 <div key={h.uuid}>
                                     <div className="mb-1 flex items-center justify-between text-sm">
                                         <Link href={`/projects/${h.uuid}`} className="truncate text-slate-600 hover:text-brand-700">{h.name}</Link>
@@ -132,6 +146,7 @@ export default function Dashboard({ stats, myTasks, health, projectStatus = [] }
                             ))}
                         </div>
                     )}
+                    </Deferred>
                 </Card>
             </div>
         </AuthenticatedLayout>
