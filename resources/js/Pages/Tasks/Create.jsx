@@ -55,7 +55,8 @@ export default function Create({ projects, users, parentTasks = [] }) {
 
     const projectOpts = projects.map((p) => ({ value: p.id, label: p.name }));
     const userOpts = users.map((u) => ({ value: u.id, label: u.name, hint: u.employee_id }));
-    const parentOpts = parentTasks.filter((t) => String(t.project_id) === String(data.project_id)).map((t) => ({ value: t.id, label: t.title }));
+    const projName = (id) => projects.find((p) => String(p.id) === String(id))?.name;
+    const parentOpts = parentTasks.map((t) => ({ value: t.id, label: t.title, hint: projName(t.project_id) }));
 
     return (
         <AuthenticatedLayout header={<PageHeader title="New Task" subtitle="Create a task and assign it." />}>
@@ -66,14 +67,14 @@ export default function Create({ projects, users, parentTasks = [] }) {
                     <SectionTitle>Details</SectionTitle>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field label="Project" required error={errors.project_id}>
-                            <Combobox options={projectOpts} value={data.project_id} onChange={(v) => { setData('project_id', v); setData('parent_task_id', ''); }} placeholder="Select project…" />
+                            <Combobox options={projectOpts} value={data.project_id} onChange={(v) => setData('project_id', v)} placeholder="Select project…" />
                         </Field>
                         <Field label="Task Name" required error={errors.title}>
                             <input className={inputCls} value={data.title} onChange={(e) => setData('title', e.target.value)} autoFocus />
                         </Field>
                         <div className="sm:col-span-2">
                             <Field label="Parent Task (optional)" error={errors.parent_task_id}>
-                                <Combobox options={parentOpts} value={data.parent_task_id} onChange={(v) => setData('parent_task_id', v)} placeholder={data.project_id ? 'Select a parent task…' : 'Pick a project first'} />
+                                <Combobox options={parentOpts} value={data.parent_task_id} onChange={(v) => setData('parent_task_id', v)} placeholder="Search a parent task…" />
                             </Field>
                         </div>
                         <div className="sm:col-span-2">

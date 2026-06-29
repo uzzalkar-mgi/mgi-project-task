@@ -53,14 +53,16 @@ export default function Welcome({ canLogin }) {
                                 <p className="text-xs text-slate-500">Manage projects · Assign tasks · Track timelines</p>
                             </div>
                         </div>
-                        {canLogin && (
-                            <Link
-                                href={route('login')}
-                                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
-                            >
-                                Sign in
-                            </Link>
-                        )}
+                        <nav className="flex items-center gap-1">
+                            {canLogin && (
+                                <Link
+                                    href={route('login')}
+                                    className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+                                >
+                                    Sign in
+                                </Link>
+                            )}
+                        </nav>
                     </div>
                 </header>
 
@@ -131,6 +133,74 @@ export default function Welcome({ canLogin }) {
                                     <p className="mt-3 text-sm text-slate-600">{r.desc}</p>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* About */}
+                <section id="about" className="border-t border-slate-200 bg-slate-50">
+                    <div className="mx-auto grid max-w-6xl gap-8 px-6 py-14 lg:grid-cols-2">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">About the System</h2>
+                            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                                The Project Tracking System (PTS) is an in-house platform built for
+                                <span className="font-semibold text-slate-800"> Meghna Group of Industries</span> to plan,
+                                assign and monitor projects and tasks across teams. It replaces scattered spreadsheets with a
+                                single source of truth — clear ownership, live status, timelines and accountability from start
+                                to delivery.
+                            </p>
+                            <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                                {['Centralised projects, tasks and milestones',
+                                  'Role-based access (Admin · Manager · Employee)',
+                                  'Kanban board, Gantt timeline and dashboards',
+                                  'Comments, attachments and deadline alerts'].map((t) => (
+                                    <li key={t} className="flex items-start gap-2">
+                                        <svg className="mt-0.5 h-4 w-4 shrink-0 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>
+                                        {t}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="rounded-2xl bg-gradient-to-br from-brand-800 to-brand-500 p-8 text-white">
+                            <h3 className="text-lg font-bold">Meghna Group of Industries</h3>
+                            <p className="mt-3 text-sm leading-relaxed text-white/90">
+                                Meghna Group of Industries (MGI) is one of the largest and fastest-growing conglomerates in
+                                Bangladesh, operating across FMCG, cement, food &amp; beverage, chemicals, power, shipping and
+                                more — with a nationwide network and tens of thousands of employees.
+                            </p>
+                            <div className="mt-5 grid grid-cols-3 gap-4 border-t border-white/20 pt-5 text-center">
+                                <div><p className="text-2xl font-bold">50+</p><p className="text-xs text-white/80">Years</p></div>
+                                <div><p className="text-2xl font-bold">50+</p><p className="text-xs text-white/80">Concerns</p></div>
+                                <div><p className="text-2xl font-bold">50k+</p><p className="text-xs text-white/80">Employees</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Contact */}
+                <section id="contact" className="border-t border-slate-200 bg-white">
+                    <div className="mx-auto max-w-6xl px-6 py-14">
+                        <h2 className="text-center text-2xl font-bold text-slate-900">Contact Us</h2>
+                        <p className="mx-auto mt-2 max-w-xl text-center text-sm text-slate-500">
+                            For access or support, reach the Meghna Group of Industries IT team.
+                        </p>
+                        <div className="mt-8 grid gap-5 sm:grid-cols-3">
+                            {[
+                                { icon: 'M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9.5A2.5 2.5 0 1112 6a2.5 2.5 0 010 5.5z', label: 'Address', value: 'Fresh House, House # 23, Road # 24, Gulshan # 2, Dhaka-1212' },
+                                { icon: 'M22 16.92v3a2 2 0 01-2.18 2 19.8 19.8 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.8 19.8 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z', label: 'Phone', value: '+880 9666777055' },
+                                { icon: 'M4 4h16v16H4z M22 6l-10 7L2 6', label: 'Email', value: 'info@mgi.org' },
+                            ].map((c) => (
+                                <div key={c.label} className="rounded-xl border border-slate-200 p-5 text-center">
+                                    <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d={c.icon} /></svg>
+                                    </span>
+                                    <h3 className="mt-3 text-sm font-semibold text-slate-900">{c.label}</h3>
+                                    <p className="mt-1 whitespace-pre-line text-sm text-slate-500">{c.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-6 text-center">
+                            <a href="https://www.mgi.org" target="_blank" rel="noreferrer" className="text-sm font-medium text-brand-600 hover:underline">www.mgi.org</a>
                         </div>
                     </div>
                 </section>
