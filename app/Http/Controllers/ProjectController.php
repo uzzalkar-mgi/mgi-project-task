@@ -106,6 +106,64 @@ class ProjectController extends Controller
             ->all();
     }
 
+    /** Edit form. */
+    public function edit(Request $request, Project $project): Response
+    {
+        $this->authorize('permission', 'projects.create');
+        abort_unless(Project::whereKey($project->id)->visibleTo($request->user())->exists(), 403);
+
+        $project->load(['members:id', 'tags:id,name']);
+
+        return Inertia::render('Projects/Edit', [
+            'project' => [
+                'uuid'                     => $project->uuid,
+                'name'                     => $project->name,
+                'description'              => $project->description,
+                'start_date'               => $project->start_date?->toDateString(),
+                'end_date'                 => $project->end_date?->toDateString(),
+                'priority'                 => $project->priority,
+                'status'                   => $project->status,
+                'lead_user_id'             => $project->lead_user_id,
+                'primary_responsible_id'   => $project->primary_responsible_id,
+                'secondary_responsible_id' => $project->secondary_responsible_id,
+                'member_ids'               => $project->members->pluck('id'),
+                'tags'                     => $project->tags->pluck('name'),
+            ],
+            'users' => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
+            'tags'  => Tag::orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    /** Persist project updates. */
+    public function update(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('permission', 'projects.create');
+        abort_unless(Project::whereKey($project->id)->visibleTo($request->user())->exists(), 403);
+
+        $data = $request->validate([
+            'name'                     => ['required', 'string', 'max:255'],
+            'description'              => ['nullable', 'string'],
+            'start_date'               => ['required', 'date'],
+            'end_date'                 => ['required', 'date', 'after_or_equal:start_date'],
+            'priority'                 => ['required', 'in:low,medium,high,critical'],
+            'status'                   => ['required', 'in:active,on_hold,completed,cancelled'],
+            'lead_user_id'             => ['required', 'exists:users,id'],
+            'primary_responsible_id'   => ['required', 'exists:users,id'],
+            'secondary_responsible_id' => ['nullable', 'exists:users,id', 'different:primary_responsible_id'],
+            'member_ids'               => ['array'],
+            'member_ids.*'             => ['exists:users,id'],
+            'tags'                     => ['array'],
+            'tags.*'                   => ['string', 'max:50'],
+        ]);
+
+        $project->update(collect($data)->except(['member_ids', 'tags'])->all());
+
+        $project->members()->sync(collect($data['member_ids'] ?? [])->mapWithKeys(fn ($id) => [$id => ['role_in_project' => 'member']]));
+        $project->tags()->sync($this->resolveTagIds($data['tags'] ?? []));
+
+        return redirect()->route('projects.show', $project->uuid)->with('status', 'Project updated.');
+    }
+
     /** Project detail with tasks. */
     public function show(Request $request, Project $project): Response
     {
@@ -144,6 +202,7 @@ class ProjectController extends Controller
                     ]),
                 ]),
             ],
+            'canEdit' => $request->user()->hasPermission('projects.create'),
         ]);
     }
 }
