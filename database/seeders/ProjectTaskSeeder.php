@@ -43,33 +43,33 @@ class ProjectTaskSeeder extends Seeder
         ]);
         $fmcg->tags()->syncWithoutDetaching([$fmcgTag->id]);
 
-        $fmcgTasks = [
-            [
-                'title'       => 'Promotion: Discount and Slab (KG to KG) will update',
-                'description' => 'Update promotion engine to support discount slabs based on KG-to-KG conversion.',
-                'start_date'  => '2026-06-02', 'due_date' => '2026-06-20',
-                'priority'    => 'high', 'status' => 'in_progress', 'assignees' => [$member->id, $manager->id],
-            ],
-            [
-                'title'       => 'Distributor onboarding form revamp',
-                'description' => 'Redesign distributor onboarding with validation and document upload.',
-                'start_date'  => '2026-06-10', 'due_date' => '2026-07-05',
-                'priority'    => 'normal', 'status' => 'todo', 'assignees' => [$member->id],
-            ],
-            [
-                'title'       => 'Primary order approval workflow',
-                'description' => 'Multi-step approval for primary orders above credit limit.',
-                'start_date'  => '2026-06-15', 'due_date' => '2026-07-15',
-                'priority'    => 'urgent', 'status' => 'under_review', 'assignees' => [$manager->id],
-            ],
-            [
-                'title'       => 'Sales target dashboard (region-wise)',
-                'description' => 'Region-wise primary sales target vs achievement dashboard.',
-                'start_date'  => '2026-07-01', 'due_date' => '2026-08-01',
-                'priority'    => 'normal', 'status' => 'blocked', 'assignees' => [$member->id],
-            ],
-        ];
-        $this->makeTasks($fmcg, $fmcgTasks, $manager, [$fmcgTag->id]);
+//        $fmcgTasks = [
+//            [
+//                'title'       => 'Promotion: Discount and Slab (KG to KG) will update',
+//                'description' => 'Update promotion engine to support discount slabs based on KG-to-KG conversion.',
+//                'start_date'  => '2026-06-02', 'due_date' => '2026-06-20',
+//                'priority'    => 'high', 'status' => 'in_progress', 'assignees' => [$member->id, $manager->id],
+//            ],
+//            [
+//                'title'       => 'Distributor onboarding form revamp',
+//                'description' => 'Redesign distributor onboarding with validation and document upload.',
+//                'start_date'  => '2026-06-10', 'due_date' => '2026-07-05',
+//                'priority'    => 'normal', 'status' => 'todo', 'assignees' => [$member->id],
+//            ],
+//            [
+//                'title'       => 'Primary order approval workflow',
+//                'description' => 'Multi-step approval for primary orders above credit limit.',
+//                'start_date'  => '2026-06-15', 'due_date' => '2026-07-15',
+//                'priority'    => 'urgent', 'status' => 'under_review', 'assignees' => [$manager->id],
+//            ],
+//            [
+//                'title'       => 'Sales target dashboard (region-wise)',
+//                'description' => 'Region-wise primary sales target vs achievement dashboard.',
+//                'start_date'  => '2026-07-01', 'due_date' => '2026-08-01',
+//                'priority'    => 'normal', 'status' => 'blocked', 'assignees' => [$member->id],
+//            ],
+//        ];
+//        $this->makeTasks($fmcg, $fmcgTasks, $manager, [$fmcgTag->id]);
 
         // ---- Project 2: Cement -------------------------------------------
         $cement = Project::updateOrCreate(
@@ -92,33 +92,33 @@ class ProjectTaskSeeder extends Seeder
         ]);
         $cement->tags()->syncWithoutDetaching([$cementTag->id]);
 
-        $cementTasks = [
-            [
-                'title'       => 'Employee achievement and target report',
-                'description' => 'Monthly employee-wise achievement vs target report with export.',
-                'start_date'  => '2026-06-03', 'due_date' => '2026-06-25',
-                'priority'    => 'high', 'status' => 'in_progress', 'assignees' => [$member->id],
-            ],
-            [
-                'title'       => 'Dealer ledger reconciliation',
-                'description' => 'Reconcile dealer ledgers with accounting for Q2.',
-                'start_date'  => '2026-06-12', 'due_date' => '2026-07-10',
-                'priority'    => 'normal', 'status' => 'todo', 'assignees' => [$manager->id, $member->id],
-            ],
-            [
-                'title'       => 'Bag dispatch tracking integration',
-                'description' => 'Integrate plant dispatch data for real-time bag tracking.',
-                'start_date'  => '2026-07-05', 'due_date' => '2026-08-15',
-                'priority'    => 'low', 'status' => 'todo', 'assignees' => [$member->id],
-            ],
-            [
-                'title'       => 'Q2 sales performance review',
-                'description' => 'Compile and present Q2 cement sales performance.',
-                'start_date'  => '2026-06-01', 'due_date' => '2026-06-15',
-                'priority'    => 'normal', 'status' => 'done', 'assignees' => [$manager->id],
-            ],
-        ];
-        $this->makeTasks($cement, $cementTasks, $manager, [$cementTag->id]);
+//        $cementTasks = [
+//            [
+//                'title'       => 'Employee achievement and target report',
+//                'description' => 'Monthly employee-wise achievement vs target report with export.',
+//                'start_date'  => '2026-06-03', 'due_date' => '2026-06-25',
+//                'priority'    => 'high', 'status' => 'in_progress', 'assignees' => [$member->id],
+//            ],
+//            [
+//                'title'       => 'Dealer ledger reconciliation',
+//                'description' => 'Reconcile dealer ledgers with accounting for Q2.',
+//                'start_date'  => '2026-06-12', 'due_date' => '2026-07-10',
+//                'priority'    => 'normal', 'status' => 'todo', 'assignees' => [$manager->id, $member->id],
+//            ],
+//            [
+//                'title'       => 'Bag dispatch tracking integration',
+//                'description' => 'Integrate plant dispatch data for real-time bag tracking.',
+//                'start_date'  => '2026-07-05', 'due_date' => '2026-08-15',
+//                'priority'    => 'low', 'status' => 'todo', 'assignees' => [$member->id],
+//            ],
+//            [
+//                'title'       => 'Q2 sales performance review',
+//                'description' => 'Compile and present Q2 cement sales performance.',
+//                'start_date'  => '2026-06-01', 'due_date' => '2026-06-15',
+//                'priority'    => 'normal', 'status' => 'done', 'assignees' => [$manager->id],
+//            ],
+//        ];
+//        $this->makeTasks($cement, $cementTasks, $manager, [$cementTag->id]);
 
         // ---- Milestones --------------------------------------------------
         $this->makeMilestones($fmcg, [
