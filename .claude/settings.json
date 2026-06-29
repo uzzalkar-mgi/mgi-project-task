@@ -33,7 +33,8 @@
       "Bash(grep -rn ''\\\\''url'\\\\'' => $a->url' app/Http/Controllers/)",
       "Bash(grep -rn 'attachments.show'\\\\'', $a->id' app/Http/Controllers/)",
       "Bash(node -e \"console.log\\('react:', require\\('./package.json'\\).dependencies['@inertiajs/react']\\)\")",
-      "Bash(php -r 'echo \"inertia-laravel: \".\\(\\\\Composer\\\\InstalledVersions::getPrettyVersion\\(\"inertiajs/inertia-laravel\"\\) ?? \"n/a\"\\).\"\\\\n\";')"
+      "Bash(php -r 'echo \"inertia-laravel: \".\\(\\\\Composer\\\\InstalledVersions::getPrettyVersion\\(\"inertiajs/inertia-laravel\"\\) ?? \"n/a\"\\).\"\\\\n\";')",
+      "Bash(php -l app/Http/Middleware/EnsurePermission.php)"
     ]
   }
 }

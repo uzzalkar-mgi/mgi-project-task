@@ -41,8 +41,8 @@ class HandleInertiaRequests extends Middleware
                 'roles' => $user ? $user->roles->pluck('code') : [],
             ],
             'flash' => [
-                'status' => fn () => $request->session()->get('status'),
-                'error'  => fn () => $request->session()->get('error'),
+                'status' => $request->session()->get('status'),
+                'error'  => $request->session()->get('error'),
             ],
             'notifications' => fn () => $user ? [
                 'unread' => AppNotification::where('user_id', $user->id)->where('is_read', false)->count(),
