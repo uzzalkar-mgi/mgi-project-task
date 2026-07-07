@@ -25,15 +25,29 @@ class TaskOverdueMail extends Mailable implements ShouldQueue
         );
     }
 
+    private function overdueLabel(): string
+    {
+        if (! $this->task->due_date) {
+            return 'Overdue';
+        }
+        $days = (int) $this->task->due_date->startOfDay()->diffInDays(now()->startOfDay());
+
+        return $days > 0 ? "Overdue by {$days} day".($days === 1 ? '' : 's') : 'Overdue';
+    }
+
     public function content(): Content
     {
         return new Content(
-            markdown: 'mail.tasks.overdue',
+            view: 'mail.tasks.overdue',
             with: [
-                'task'        => $this->task,
-                'project'     => $this->task->project?->name,
-                'dueDate'     => $this->task->due_date?->format('d M Y'),
-                'description' => $this->task->description ?: 'No description provided.',
+                'title'    => $this->task->title,
+                'project'  => $this->task->project?->name,
+                'dueDate'  => $this->task->due_date?->format('l, d M Y'),
+                'overdueLabel' => $this->overdueLabel(),
+                'priority' => ucfirst($this->task->priority),
+                'status'   => ucwords(str_replace('_', ' ', $this->task->status)),
+                'appName'  => config('app.name'),
+                'url'      => rtrim(config('app.url'), '/').'/tasks',
             ],
         );
     }

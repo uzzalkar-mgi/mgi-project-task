@@ -20,6 +20,7 @@ class RolePermissionSeeder extends Seeder
         'tasks'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'assign'], 'label' => 'Tasks'],
         'timeline'     => ['actions' => ['menu', 'view'],                                         'label' => 'Timeline'],
         'milestones'   => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Milestones'],
+        'meetings'     => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'attendance'], 'label' => 'Monthly Meetings'],
         'users'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'manage'], 'label' => 'Team / Users'],
         'roles'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Roles & Permissions'],
         'departments'  => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Departments'],
@@ -58,13 +59,14 @@ class RolePermissionSeeder extends Seeder
         // Manager: everything except admin modules (users, roles, departments, designations).
         $managerPerms = Permission::whereNotIn('module', ['users', 'roles', 'departments', 'designations'])->pluck('id');
 
-        // Employee: view projects/timeline/milestones; work on tasks; personal dashboard.
+        // Employee: view projects/timeline/milestones/meetings; work on tasks; personal dashboard.
         $memberPerms = Permission::whereIn('name', [
             'dashboard.menu', 'dashboard.view',
             'projects.menu', 'projects.view',
             'tasks.menu', 'tasks.view', 'tasks.create', 'tasks.update',
             'timeline.menu', 'timeline.view',
             'milestones.menu', 'milestones.view',
+            'meetings.menu', 'meetings.view',
         ])->pluck('id');
 
         $admin->permissions()->sync($adminPerms);

@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
@@ -47,6 +48,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/timeline', [TimelineController::class, 'index'])->middleware('perm:timeline.menu')->name('timeline.index');
     Route::get('/milestones', [MilestoneController::class, 'index'])->middleware('perm:milestones.menu')->name('milestones.index');
+
+    // Monthly meetings.
+    Route::get('/meeting-settings', [MeetingController::class, 'settings'])->middleware('perm:meetings.menu')->name('meetings.settings');
+    Route::patch('/meeting-settings', [MeetingController::class, 'updateSettings'])->name('meetings.settings.update');
+    Route::get('/meetings', [MeetingController::class, 'index'])->middleware('perm:meetings.menu')->name('meetings.index');
+    Route::get('/meetings/create', [MeetingController::class, 'create'])->middleware('perm:meetings.menu')->name('meetings.create');
+    Route::post('/meetings', [MeetingController::class, 'store'])->name('meetings.store');
+    Route::get('/meetings/{meeting}/edit', [MeetingController::class, 'edit'])->middleware('perm:meetings.menu')->name('meetings.edit');
+    Route::patch('/meetings/{meeting}', [MeetingController::class, 'update'])->name('meetings.update');
+    Route::get('/meetings/{meeting}', [MeetingController::class, 'show'])->middleware('perm:meetings.menu')->name('meetings.show');
+    Route::patch('/meetings/{meeting}/discussion', [MeetingController::class, 'saveDiscussion'])->name('meetings.discussion');
+    Route::patch('/meetings/{meeting}/attendance', [MeetingController::class, 'markAttendance'])->name('meetings.attendance');
+    Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy'])->name('meetings.destroy');
 
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
 

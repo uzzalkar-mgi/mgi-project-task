@@ -7,6 +7,7 @@ export const MENU = [
     { label: 'Tasks', route: 'tasks.index', match: 'tasks.*', icon: 'tasks', permission: 'tasks.menu' },
     { label: 'Timeline', route: 'timeline.index', match: 'timeline.*', icon: 'timeline', permission: 'timeline.menu' },
     { label: 'Milestones', route: 'milestones.index', match: 'milestones.*', icon: 'milestones', permission: 'milestones.menu' },
+    { label: 'Meetings', route: 'meetings.index', match: 'meetings.*', icon: 'calendar', permission: 'meetings.menu' },
     { label: 'Team', route: 'users.index', match: 'users.*', icon: 'team', permission: 'users.menu' },
     {
         label: 'Settings', icon: 'gear', match: ['roles.*', 'departments.*', 'designations.*'],

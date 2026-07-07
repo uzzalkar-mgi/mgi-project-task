@@ -34,7 +34,14 @@
       "Bash(grep -rn 'attachments.show'\\\\'', $a->id' app/Http/Controllers/)",
       "Bash(node -e \"console.log\\('react:', require\\('./package.json'\\).dependencies['@inertiajs/react']\\)\")",
       "Bash(php -r 'echo \"inertia-laravel: \".\\(\\\\Composer\\\\InstalledVersions::getPrettyVersion\\(\"inertiajs/inertia-laravel\"\\) ?? \"n/a\"\\).\"\\\\n\";')",
-      "Bash(php -l app/Http/Middleware/EnsurePermission.php)"
+      "Bash(php -l app/Http/Middleware/EnsurePermission.php)",
+      "Bash(rm -f storage/framework/views/*.php 2>/dev/null; php artisan optimize:clear 2>&1 | tail -2; php artisan queue:flush 2>&1 >/dev/null *)",
+      "Bash(tasklist)",
+      "Bash(wmic process *)",
+      "Bash(taskkill //PID 38440 //F)"
+    ],
+    "additionalDirectories": [
+      "D:\\laragon\\www\\mgi-project-task\\storage\\framework\\views"
     ]
   }
 }

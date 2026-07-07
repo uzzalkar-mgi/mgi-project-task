@@ -42,7 +42,7 @@ export default function Edit({ task, projects, users, parentTasks = [] }) {
     };
 
     const projectOpts = projects.map((p) => ({ value: p.id, label: p.name }));
-    const userOpts = users.map((u) => ({ value: u.id, label: u.name, hint: u.employee_id }));
+    const userOpts = users.map((u) => ({ value: u.id, label: u.employee_id ? u.name + ' (' + u.employee_id + ')' : u.name, hint: u.employee_id }));
     const projName = (id) => projects.find((p) => String(p.id) === String(id))?.name;
     const parentOpts = parentTasks.map((t) => ({ value: t.id, label: t.title, hint: projName(t.project_id) }));
 

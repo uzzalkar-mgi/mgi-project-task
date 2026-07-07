@@ -40,7 +40,7 @@ export default function Edit({ project, users, tags }) {
         patch(route('projects.update', project.uuid));
     };
 
-    const userOpts = users.map((u) => ({ value: u.id, label: u.name, hint: u.employee_id }));
+    const userOpts = users.map((u) => ({ value: u.id, label: u.employee_id ? u.name + ' (' + u.employee_id + ')' : u.name, hint: u.employee_id }));
     const tagNames = tags.map((t) => t.name);
 
     return (
