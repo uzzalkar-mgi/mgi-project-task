@@ -1,8 +1,10 @@
 import { Card, PageHeader, Badge, ProgressBar } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
+import { SearchInput } from '@/Components/ui/SearchInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
 
 const STATUS_TONE = {
     active: 'green',
@@ -69,6 +71,15 @@ function ProjectCard({ p }) {
 
 export default function Index({ projects }) {
     const { can } = usePermissions();
+    const [q, setQ] = useState('');
+    const term = q.trim().toLowerCase();
+    const filtered = term
+        ? projects.filter((p) =>
+              [p.name, plain(p.description), p.status, p.priority, ...(p.tags ?? [])]
+                  .filter(Boolean)
+                  .some((v) => v.toLowerCase().includes(term))
+          )
+        : projects;
 
     return (
         <AuthenticatedLayout
@@ -77,14 +88,17 @@ export default function Index({ projects }) {
                     title="Projects"
                     subtitle={`${projects.length} project${projects.length === 1 ? '' : 's'} you can see.`}
                     actions={
-                        can('projects.create') && (
-                            <Link
-                                href={route('projects.create')}
-                                className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
-                            >
-                                <Icon name="projects" className="h-4 w-4" /> New Project
-                            </Link>
-                        )
+                        <div className="flex items-center gap-2">
+                            <SearchInput value={q} onChange={setQ} placeholder="Search projects…" />
+                            {can('projects.create') && (
+                                <Link
+                                    href={route('projects.create')}
+                                    className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+                                >
+                                    <Icon name="projects" className="h-4 w-4" /> New Project
+                                </Link>
+                            )}
+                        </div>
                     }
                 />
             }
@@ -101,9 +115,16 @@ export default function Index({ projects }) {
                         {can('projects.create') ? 'Create your first project to get started.' : 'No projects have been assigned to you yet.'}
                     </p>
                 </Card>
+            ) : filtered.length === 0 ? (
+                <Card className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                        <Icon name="search" className="h-6 w-6" />
+                    </span>
+                    <p className="mt-3 text-sm text-slate-500">No projects match “{q}”.</p>
+                </Card>
             ) : (
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    {projects.map((p) => (
+                    {filtered.map((p) => (
                         <Link key={p.uuid} href={route('projects.show', p.uuid)} className="block transition hover:-translate-y-0.5">
                             <ProjectCard p={p} />
                         </Link>
