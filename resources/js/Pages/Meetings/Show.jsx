@@ -29,6 +29,7 @@ function MetaTile({ icon, label, value }) {
 }
 
 export default function Show({ meeting, canManage, canAttendance }) {
+    const locked = meeting.status === 'completed';
     const [present, setPresent] = useState(() => new Set(meeting.invitees.filter((i) => i.attended).map((i) => i.id)));
     const [savingAtt, setSavingAtt] = useState(false);
     const attendedCount = meeting.invitees.filter((i) => i.attended).length;
@@ -81,7 +82,7 @@ export default function Show({ meeting, canManage, canAttendance }) {
                 <Card className="p-5 lg:col-span-1">
                     <div className="mb-3 flex items-center justify-between">
                         <SectionTitle>Attendance</SectionTitle>
-                        {canAttendance && meeting.invitees.length > 0 && (
+                        {canAttendance && !locked && meeting.invitees.length > 0 && (
                             <button onClick={toggleAll} className="text-xs font-medium text-brand-600 hover:underline">{allOn ? 'Clear all' : 'Select all'}</button>
                         )}
                     </div>
@@ -100,23 +101,24 @@ export default function Show({ meeting, canManage, canAttendance }) {
                                                 <span className="block text-xs text-slate-400">{u.employee_id ?? ''}{u.attended && u.attended_at ? ` · ${fmtDT(u.attended_at)}` : ''}</span>
                                             </span>
                                         </label>
-                                        {canAttendance && <input type="checkbox" checked={on} onChange={() => toggle(u.id)} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />}
+                                        {canAttendance && !locked && <input type="checkbox" checked={on} onChange={() => toggle(u.id)} className="rounded border-slate-300 text-brand-600 focus:ring-brand-500" />}
                                     </li>
                                 );
                             })}
                         </ul>
                     )}
-                    {canAttendance && meeting.invitees.length > 0 && (
+                    {canAttendance && !locked && meeting.invitees.length > 0 && (
                         <button onClick={saveAttendance} disabled={savingAtt} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-70">
                             <Icon name="check" className="h-4 w-4" /> {savingAtt ? 'Saving…' : 'Save Attendance'}
                         </button>
                     )}
+                    {locked && <p className="mt-4 flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-600"><Icon name="check" className="h-3.5 w-3.5" /> Meeting completed — attendance locked.</p>}
                 </Card>
 
                 {/* Discussion */}
                 <Card className="p-5 lg:col-span-2">
                     <SectionTitle>Discussion / Minutes</SectionTitle>
-                    {canManage ? (
+                    {canManage && !locked ? (
                         <form onSubmit={saveDiscussion}>
                             <RichTextEditor value={disc.data.discussion} onChange={(html) => disc.setData('discussion', html)} placeholder="Record the meeting discussion…" />
                             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">

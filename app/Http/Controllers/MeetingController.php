@@ -145,6 +145,11 @@ class MeetingController extends Controller
     public function saveDiscussion(Request $request, Meeting $meeting): RedirectResponse
     {
         $this->authorize('permission', 'meetings.update');
+
+        if ($meeting->status === 'completed') {
+            return back()->with('error', 'Completed meetings are locked.');
+        }
+
         $data = $request->validate([
             'discussion' => ['nullable', 'string'],
             'status'     => ['nullable', 'in:scheduled,completed,cancelled'],
@@ -161,6 +166,11 @@ class MeetingController extends Controller
     public function markAttendance(Request $request, Meeting $meeting): RedirectResponse
     {
         $this->authorize('permission', 'meetings.attendance');
+
+        if ($meeting->status === 'completed') {
+            return back()->with('error', 'Completed meetings are locked.');
+        }
+
         $data = $request->validate([
             'attendee_ids'   => ['array'],
             'attendee_ids.*' => ['integer'],
