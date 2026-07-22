@@ -1,5 +1,6 @@
 import { Card, PageHeader, Badge, SectionTitle } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
+import { SearchInput } from '@/Components/ui/SearchInput';
 import { AttachmentViewer } from '@/Components/ui/AttachmentViewer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
@@ -34,18 +35,22 @@ function Meta({ icon, label, value }) {
 export default function Show({ project, canEdit }) {
     const [tab, setTab] = useState('all');
     const [page, setPage] = useState(1);
+    const [q, setQ] = useState('');
+    const term = q.trim().toLowerCase();
+    const matches = (t) => !term || [t.title, t.status, t.priority, t.platform, ...(t.assignees ?? [])].filter(Boolean).some((v) => String(v).toLowerCase().includes(term));
 
     // Due tab: not-done tasks with a due date, soonest first.
     const dueTasks = project.tasks
         .filter((t) => t.status !== 'done' && t.due_date)
         .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
 
-    const list = tab === 'due' ? dueTasks : project.tasks;
+    const base = tab === 'due' ? dueTasks : project.tasks;
+    const list = base.filter(matches);
     const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
     const cur = Math.min(page, pages);
     const pagedTasks = list.slice((cur - 1) * PER_PAGE, cur * PER_PAGE);
 
-    const switchTab = (t) => { setTab(t); setPage(1); };
+    const switchTab = (t) => { setTab(t); setPage(1); setQ(''); };
     const today = new Date().setHours(0, 0, 0, 0);
 
     return (
@@ -107,16 +112,21 @@ export default function Show({ project, canEdit }) {
 
                 {/* Tasks */}
                 <Card className="p-5 lg:col-span-2">
-                    <div className="mb-3 flex items-center gap-1 border-b border-slate-100">
-                        <button onClick={() => switchTab('all')} className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-semibold transition ${tab === 'all' ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                            Tasks <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-600">{project.tasks.length}</span>
-                        </button>
-                        <button onClick={() => switchTab('due')} className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-semibold transition ${tab === 'due' ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                            Task Due <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs font-bold text-amber-600">{dueTasks.length}</span>
-                        </button>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100">
+                        <div className="flex items-center gap-1">
+                            <button onClick={() => switchTab('all')} className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-semibold transition ${tab === 'all' ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+                                Tasks <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-600">{project.tasks.length}</span>
+                            </button>
+                            <button onClick={() => switchTab('due')} className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-semibold transition ${tab === 'due' ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+                                Task Due <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs font-bold text-amber-600">{dueTasks.length}</span>
+                            </button>
+                        </div>
+                        <div className="pb-2">
+                            <SearchInput value={q} onChange={(v) => { setQ(v); setPage(1); }} placeholder="Search tasks…" />
+                        </div>
                     </div>
                     {list.length === 0 ? (
-                        <p className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">{tab === 'due' ? 'No pending due tasks.' : 'No tasks yet.'}</p>
+                        <p className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">{term ? `No tasks match “${q}”.` : tab === 'due' ? 'No pending due tasks.' : 'No tasks yet.'}</p>
                     ) : (
                         <ul className="divide-y divide-slate-100">
                             {pagedTasks.map((t) => (
