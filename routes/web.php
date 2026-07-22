@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnswerController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
@@ -45,6 +46,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/tasks/{task}/attachments', [TaskController::class, 'uploadAttachment'])->name('tasks.attachments.store');
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+
+    // Dedicated task answers (assignee deliverables).
+    Route::post('/tasks/{task}/answers', [AnswerController::class, 'store'])->name('answers.store');
+    Route::patch('/answers/{answer}/accept', [AnswerController::class, 'accept'])->name('answers.accept');
+    Route::delete('/answers/{answer}', [AnswerController::class, 'destroy'])->name('answers.destroy');
 
     Route::get('/timeline', [TimelineController::class, 'index'])->middleware('perm:timeline.menu')->name('timeline.index');
     Route::get('/milestones', [MilestoneController::class, 'index'])->middleware('perm:milestones.menu')->name('milestones.index');

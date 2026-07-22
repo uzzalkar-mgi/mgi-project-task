@@ -46,6 +46,7 @@ export default function Create({ projects, users, parentTasks = [] }) {
         platform: 'web',
         estimated_hours: '',
         assignee_ids: [],
+        watcher_ids: [],
     });
 
     const submit = (e) => {
@@ -110,10 +111,16 @@ export default function Create({ projects, users, parentTasks = [] }) {
                 </Card>
 
                 <Card className="p-5">
-                    <SectionTitle>Assignees</SectionTitle>
-                    <Field label="Assigned To" required error={errors.assignee_ids}>
-                        <MultiCombobox options={userOpts} values={data.assignee_ids} onChange={(v) => setData('assignee_ids', v)} placeholder="Search to assign…" />
-                    </Field>
+                    <SectionTitle>People</SectionTitle>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <Field label="Assigned To" required error={errors.assignee_ids}>
+                            <MultiCombobox options={userOpts} values={data.assignee_ids} onChange={(v) => setData('assignee_ids', v)} placeholder="Search to assign…" />
+                        </Field>
+                        <Field label="Tag / Watchers (optional)" error={errors.watcher_ids}>
+                            <MultiCombobox options={userOpts} values={data.watcher_ids} onChange={(v) => setData('watcher_ids', v)} placeholder="Tag members to notify…" />
+                        </Field>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">Watchers get task reminder &amp; overdue notifications but aren't responsible for it.</p>
                 </Card>
 
                 <div className="flex items-center gap-3">

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 class CommentController extends Controller
 {
     /** Post a comment or reply on a task (with optional files/images). */
-    public function store(Request $request, Task $task): RedirectResponse
+    public function store(Request $request, Task $task): RedirectResponse|JsonResponse
     {
         $user = $request->user();
 
@@ -22,7 +22,7 @@ class CommentController extends Controller
         abort_unless(Project::query()->visibleTo($user)->whereKey($task->project_id)->exists(), 403);
 
         $data = $request->validate([
-            'body'      => ['required', 'string', 'max:5000'],
+            'body'      => ['required', 'string', 'max:20000'],
             'parent_id' => ['nullable', 'exists:comments,id'],
             'files'     => ['array', 'max:5'],
             'files.*'   => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
@@ -56,7 +56,8 @@ class CommentController extends Controller
         }
 
         if ($request->wantsJson()) {
-            return response()->json(['ok' => true]);
+            // Return the refreshed tree so the caller needn't fire a second request.
+            return response()->json(['ok' => true, 'comments' => Comment::treeForTask($task)]);
         }
 
         return back()->with('status', 'Comment posted.');

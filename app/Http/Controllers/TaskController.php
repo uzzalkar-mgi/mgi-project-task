@@ -104,6 +104,8 @@ class TaskController extends Controller
             'estimated_hours' => ['nullable', 'numeric', 'min:0'],
             'assignee_ids'    => ['required', 'array', 'min:1'],
             'assignee_ids.*'  => ['exists:users,id'],
+            'watcher_ids'     => ['array'],
+            'watcher_ids.*'   => ['exists:users,id'],
         ], [
             'assignee_ids.required' => 'Assign the task to at least one member.',
             'assignee_ids.min'      => 'Assign the task to at least one member.',
@@ -113,11 +115,12 @@ class TaskController extends Controller
         abort_unless($this->visibleProjects($request->user())->whereKey($data['project_id'])->exists(), 403);
 
         $task = Task::create([
-            ...collect($data)->except('assignee_ids')->all(),
+            ...collect($data)->except(['assignee_ids', 'watcher_ids'])->all(),
             'reporter_id' => $request->user()->id,
         ]);
 
         $task->assignees()->sync($data['assignee_ids'] ?? []);
+        $task->watchers()->sync($data['watcher_ids'] ?? []);
 
         return redirect()->route('tasks.index')->with('status', 'Task created.');
     }
@@ -125,7 +128,7 @@ class TaskController extends Controller
     public function edit(Request $request, Task $task): Response
     {
         $user = $request->user();
-        $task->loadMissing('assignees:id');
+        $task->loadMissing(['assignees:id', 'watchers:id']);
         abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists() && $this->canModify($user, $task), 403);
 
         $projectIds = $this->visibleProjects($user)->pluck('id');
@@ -144,6 +147,7 @@ class TaskController extends Controller
                 'platform'        => $task->platform,
                 'estimated_hours' => $task->estimated_hours,
                 'assignee_ids'    => $task->assignees->pluck('id'),
+                'watcher_ids'     => $task->watchers->pluck('id'),
             ],
             'projects' => $this->visibleProjects($user)->get(['id', 'name']),
             'users'    => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
@@ -170,6 +174,8 @@ class TaskController extends Controller
             'estimated_hours' => ['nullable', 'numeric', 'min:0'],
             'assignee_ids'    => ['required', 'array', 'min:1'],
             'assignee_ids.*'  => ['exists:users,id'],
+            'watcher_ids'     => ['array'],
+            'watcher_ids.*'   => ['exists:users,id'],
         ], [
             'assignee_ids.required' => 'Assign the task to at least one member.',
             'assignee_ids.min'      => 'Assign the task to at least one member.',
@@ -179,10 +185,11 @@ class TaskController extends Controller
         abort_unless($this->visibleProjects($user)->whereKey($data['project_id'])->exists(), 403);
 
         $task->update([
-            ...collect($data)->except('assignee_ids')->all(),
+            ...collect($data)->except(['assignee_ids', 'watcher_ids'])->all(),
             'completed_at' => $data['status'] === 'done' ? ($task->completed_at ?? now()) : null,
         ]);
         $task->assignees()->sync($data['assignee_ids']);
+        $task->watchers()->sync($data['watcher_ids'] ?? []);
 
         return redirect()->route('tasks.show', $task->uuid)->with('status', 'Task updated.');
     }
@@ -198,10 +205,12 @@ class TaskController extends Controller
         $task->load([
             'project:id,uuid,name',
             'assignees:id,name',
+            'watchers:id,name',
             'reporter:id,name',
             'attachments',
             'parent:id,uuid,title',
             'subtasks:id,uuid,title,status,due_date,parent_task_id',
+            'answers' => fn ($q) => $q->with(['author:id,name', 'attachments'])->orderByDesc('is_accepted')->orderBy('created_at'),
         ]);
 
         return Inertia::render('Tasks/Show', [
@@ -219,6 +228,7 @@ class TaskController extends Controller
                 'project_uuid' => $task->project?->uuid,
                 'reporter'    => $task->reporter?->name,
                 'assignees'   => $task->assignees->pluck('name'),
+                'watchers'    => $task->watchers->map(fn ($w) => ['id' => $w->id, 'name' => $w->name]),
                 'parent'      => $task->parent ? ['uuid' => $task->parent->uuid, 'title' => $task->parent->title] : null,
                 'subtasks'    => $task->subtasks->map(fn ($s) => [
                     'uuid' => $s->uuid, 'title' => $s->title, 'status' => $s->status, 'due_date' => $s->due_date?->toDateString(),
@@ -226,10 +236,23 @@ class TaskController extends Controller
                 'attachments' => $task->attachments->map(fn ($a) => [
                     'title' => $a->title, 'url' => route('attachments.show', $a->id), 'file_type' => $a->file_type,
                 ]),
+                'answers'     => $task->answers->map(fn ($a) => [
+                    'id'          => $a->id,
+                    'body'        => $a->body,
+                    'author'      => $a->author?->name,
+                    'is_accepted' => $a->is_accepted,
+                    'created_at'  => $a->created_at?->diffForHumans(),
+                    'can_delete'  => $user->isSuperAdmin() || $a->user_id === $user->id,
+                    'attachments' => $a->attachments->map(fn ($t) => [
+                        'title' => $t->title, 'url' => route('attachments.show', $t->id), 'file_type' => $t->file_type,
+                    ]),
+                ]),
             ],
-            'comments' => $this->commentTree($task),
+            'comments' => Comment::treeForTask($task),
             'canChangeStatus' => $this->canChangeStatus($user, $task),
             'canModify' => $this->canModify($user, $task),
+            'canAnswer' => $this->canAnswer($user, $task),
+            'canAccept' => $this->canModify($user, $task),
         ]);
     }
 
@@ -243,7 +266,7 @@ class TaskController extends Controller
 
         return response()->json([
             'task'     => ['uuid' => $task->uuid, 'title' => $task->title],
-            'comments' => $this->commentTree($task),
+            'comments' => Comment::treeForTask($task),
             'can_comment' => true,
         ]);
     }
@@ -256,37 +279,6 @@ class TaskController extends Controller
         );
     }
 
-    /** Threaded comments (top-level + replies) with attachments. */
-    private function commentTree(Task $task): array
-    {
-        $userId = auth()->id();
-        $isSuper = auth()->user()?->isSuperAdmin() ?? false;
-
-        $task->load([
-            'comments' => fn ($q) => $q->whereNull('parent_id')->with([
-                'author:id,name',
-                'attachments',
-                'replies' => fn ($r) => $r->with(['author:id,name', 'attachments'])->orderBy('created_at'),
-            ])->orderBy('created_at'),
-        ]);
-
-        $map = fn ($c) => [
-            'id'          => $c->id,
-            'body'        => $c->body,
-            'author'      => $c->author?->name,
-            'created_at'  => $c->created_at?->diffForHumans(),
-            'can_delete'  => $isSuper || $c->user_id === $userId,
-            'attachments' => $c->attachments->map(fn ($a) => [
-                'title' => $a->title, 'url' => route('attachments.show', $a->id), 'file_type' => $a->file_type,
-            ]),
-        ];
-
-        return $task->comments->map(fn ($c) => [
-            ...$map($c),
-            'replies' => $c->replies->map($map),
-        ])->all();
-    }
-
     /**
      * Can modify task metadata / upload attachments?
      * Managers/admins (tasks.assign) any task; reporter or assignee otherwise.
@@ -296,6 +288,13 @@ class TaskController extends Controller
         return $user->isSuperAdmin()
             || $user->hasPermission('tasks.assign')
             || $task->reporter_id === $user->id
+            || $task->assignees->contains('id', $user->id);
+    }
+
+    /** Can post an answer? Assignees (they do the work) + super-admin. */
+    private function canAnswer(User $user, Task $task): bool
+    {
+        return $user->isSuperAdmin()
             || $task->assignees->contains('id', $user->id);
     }
 

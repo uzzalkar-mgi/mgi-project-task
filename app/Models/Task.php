@@ -65,9 +65,21 @@ class Task extends Model
         return $this->belongsToMany(User::class, 'task_user');
     }
 
+    /** Tagged watchers — extra users notified but not responsible. */
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_watchers');
+    }
+
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
+    }
+
+    /** Dedicated answers/deliverables posted against this task. */
+    public function answers(): HasMany
+    {
+        return $this->hasMany(Answer::class);
     }
 
     /** Tasks this task depends on. */

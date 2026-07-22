@@ -23,7 +23,7 @@ class SendOverdueTaskAlerts extends Command
             ->whereDate('due_date', '<', $today)
             ->whereNotIn('status', ['done'])
             ->whereNull('overdue_alerted_at')
-            ->with(['project.lead:id,name,email', 'project.primaryResponsible:id,name,email'])
+            ->with(['project.lead:id,name,email', 'project.primaryResponsible:id,name,email', 'watchers:id,name,email'])
             ->get();
 
         if ($tasks->isEmpty()) {
@@ -35,8 +35,9 @@ class SendOverdueTaskAlerts extends Command
         $sent = 0;
 
         foreach ($tasks as $task) {
-            // Recipient users: project lead + primary responsible (deduped).
+            // Recipient users: project lead + primary responsible + tagged watchers (deduped).
             $users = collect([$task->project?->lead, $task->project?->primaryResponsible])
+                ->merge($task->watchers)
                 ->filter()
                 ->unique('id')
                 ->values();

@@ -1,29 +1,35 @@
 import { Icon } from '@/Components/ui/Icon';
 import { AttachmentViewer } from '@/Components/ui/AttachmentViewer';
+import { RichTextEditor } from '@/Components/ui/RichTextEditor';
 import { useEffect, useRef, useState } from 'react';
+
+/** Empty check for rich-text HTML (ignores empty tags / &nbsp;). */
+function richEmpty(html = '') {
+    return !html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
 
 function initials(name = '') {
     return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || '?';
 }
 
-function CommentNode({ c, isReply, onReply, onDelete }) {
+function CommentNode({ c, depth = 0, onReply, onDelete }) {
     return (
-        <div className={`flex gap-3 ${isReply ? 'mt-3' : 'py-3'}`}>
+        <div className={`flex gap-3 ${depth > 0 ? 'mt-3' : 'py-3'}`}>
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">{initials(c.author)}</span>
             <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-800">{c.author}</span>
                     <span className="text-xs text-slate-400">{c.created_at}</span>
                 </div>
-                <p className="mt-0.5 whitespace-pre-wrap text-sm text-slate-700">{c.body}</p>
+                <div className="rich mt-0.5 text-sm text-slate-700" dangerouslySetInnerHTML={{ __html: c.body }} />
                 {c.attachments?.length > 0 && <div className="mt-2"><AttachmentViewer items={c.attachments} size="sm" /></div>}
                 <div className="mt-1.5 flex items-center gap-3">
-                    {!isReply && <button onClick={() => onReply(c)} className="text-xs font-medium text-brand-600 hover:underline">Reply</button>}
+                    <button onClick={() => onReply(c)} className="text-xs font-medium text-brand-600 hover:underline">Reply</button>
                     {c.can_delete && <button onClick={() => onDelete(c)} className="text-xs font-medium text-rose-500 hover:underline">Delete</button>}
                 </div>
                 {c.replies?.length > 0 && (
                     <div className="mt-2 border-l-2 border-slate-100 pl-3">
-                        {c.replies.map((r) => <CommentNode key={r.id} c={r} isReply onDelete={onDelete} />)}
+                        {c.replies.map((r) => <CommentNode key={r.id} c={r} depth={depth + 1} onReply={onReply} onDelete={onDelete} />)}
                     </div>
                 )}
             </div>
@@ -60,7 +66,7 @@ export function CommentModal({ taskUuid, taskTitle, onClose, onPosted }) {
 
     const submit = (e) => {
         e.preventDefault();
-        if (!body.trim()) return;
+        if (richEmpty(body)) return;
         setPosting(true);
         setError(null);
         const fd = new FormData();
@@ -69,9 +75,10 @@ export function CommentModal({ taskUuid, taskTitle, onClose, onPosted }) {
         files.forEach((f) => fd.append('files[]', f));
 
         window.axios.post(`/tasks/${taskUuid}/comments`, fd, { headers: { Accept: 'application/json' } })
-            .then(() => {
-                setBody(''); setFiles([]); setReplyTo(null);
-                load();
+            .then((r) => {
+                setBody(''); setFiles([]); setReplyTo(null); setError(null);
+                // Store returns the refreshed tree — use it directly (no fragile second request).
+                if (r.data?.comments) setComments(r.data.comments); else load();
                 onPosted?.();
             })
             .catch((err) => setError(err.response?.data?.message ?? 'Failed to post.'))
@@ -112,16 +119,10 @@ export function CommentModal({ taskUuid, taskTitle, onClose, onPosted }) {
                         </div>
                     )}
                     {error && <p className="mb-2 text-sm text-rose-500">{error}</p>}
-                    <textarea
-                        value={body}
-                        onChange={(e) => setBody(e.target.value)}
-                        rows={2}
-                        placeholder={replyTo ? 'Write a reply…' : 'Write a comment…'}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                    />
+                    <RichTextEditor value={body} onChange={setBody} placeholder={replyTo ? 'Write a reply…' : 'Write a comment…'} />
                     {files.length > 0 && <p className="mt-1 text-xs text-slate-500">{files.length} file(s) attached</p>}
                     <div className="mt-2 flex items-center gap-2">
-                        <button type="submit" disabled={posting || !body.trim()} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+                        <button type="submit" disabled={posting || richEmpty(body)} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
                             <Icon name="check" className="h-4 w-4" /> {replyTo ? 'Reply' : 'Comment'}
                         </button>
                         <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
