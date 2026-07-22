@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationSettingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
@@ -108,6 +109,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/departments/{department}/status', [DepartmentController::class, 'toggleStatus'])->name('departments.status');
     Route::delete('/departments/{department}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
 
+    // Settings: Mail & Notifications (global, admin).
+    Route::get('/notification-settings', [NotificationSettingController::class, 'edit'])->middleware('perm:users.menu')->name('notifications.settings');
+    Route::patch('/notification-settings', [NotificationSettingController::class, 'update'])->name('notifications.settings.update');
+
     // Settings: Designations.
     Route::get('/designations', [DesignationController::class, 'index'])->middleware('perm:designations.menu')->name('designations.index');
     Route::post('/designations', [DesignationController::class, 'store'])->name('designations.store');
@@ -119,6 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/notifications', [ProfileController::class, 'updateNotifications'])->name('profile.notifications');
     Route::post('/profile/image', [ProfileController::class, 'updateImage'])->name('profile.image');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });

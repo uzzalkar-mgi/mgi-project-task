@@ -47,9 +47,13 @@ class MeetingController extends Controller
         ]);
     }
 
-    public function edit(Meeting $meeting): Response
+    public function edit(Meeting $meeting): Response|RedirectResponse
     {
         $this->authorize('permission', 'meetings.update');
+
+        if ($meeting->status === 'completed') {
+            return redirect()->route('meetings.show', $meeting->uuid)->with('error', 'Completed meetings cannot be edited.');
+        }
 
         return Inertia::render('Meetings/Form', [
             'meeting' => [
@@ -85,6 +89,11 @@ class MeetingController extends Controller
     public function update(Request $request, Meeting $meeting): RedirectResponse
     {
         $this->authorize('permission', 'meetings.update');
+
+        if ($meeting->status === 'completed') {
+            return redirect()->route('meetings.show', $meeting->uuid)->with('error', 'Completed meetings cannot be edited.');
+        }
+
         $data = $this->validateMeeting($request);
 
         $meeting->update([
@@ -172,6 +181,11 @@ class MeetingController extends Controller
     public function destroy(Meeting $meeting): RedirectResponse
     {
         $this->authorize('permission', 'meetings.delete');
+
+        if ($meeting->status === 'completed') {
+            return back()->with('error', 'Completed meetings cannot be deleted.');
+        }
+
         $meeting->delete();
 
         return redirect()->route('meetings.index')->with('status', 'Meeting deleted.');

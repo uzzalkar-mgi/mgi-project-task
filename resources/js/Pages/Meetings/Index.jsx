@@ -67,8 +67,9 @@ export default function Index({ meetings, canManage }) {
                                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-end gap-2">
                                             <Link href={route('meetings.show', m.uuid)} className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"><Icon name="eye" className="h-3.5 w-3.5" /></Link>
-                                            {can('meetings.update') && <Link href={route('meetings.edit', m.uuid)} className="rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><Icon name="edit" className="h-3.5 w-3.5" /></Link>}
-                                            {can('meetings.delete') && <button onClick={() => remove(m)} className="rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50"><Icon name="trash" className="h-3.5 w-3.5" /></button>}
+                                            {can('meetings.update') && m.status !== 'completed' && <Link href={route('meetings.edit', m.uuid)} className="rounded-md border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"><Icon name="edit" className="h-3.5 w-3.5" /></Link>}
+                                            {can('meetings.delete') && m.status !== 'completed' && <button onClick={() => remove(m)} className="rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50"><Icon name="trash" className="h-3.5 w-3.5" /></button>}
+                                            {m.status === 'completed' && <span className="rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-600">Locked</span>}
                                         </div>
                                     </td>
                                 </tr>

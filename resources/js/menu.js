@@ -17,11 +17,12 @@ export const MENU = [
         ],
     },
     {
-        label: 'Settings', icon: 'gear', match: ['roles.*', 'departments.*', 'designations.*'],
+        label: 'Settings', icon: 'gear', match: ['roles.*', 'departments.*', 'designations.*', 'notifications.settings*'],
         children: [
             { label: 'Roles', route: 'roles.index', match: 'roles.*', icon: 'gear', permission: 'roles.menu' },
             { label: 'Departments', route: 'departments.index', match: 'departments.*', icon: 'projects', permission: 'departments.menu' },
             { label: 'Designations', route: 'designations.index', match: 'designations.*', icon: 'milestones', permission: 'designations.menu' },
+            { label: 'Mail & Notifications', route: 'notifications.settings', match: 'notifications.settings*', icon: 'bell', permission: 'users.menu' },
         ],
     },
 ];

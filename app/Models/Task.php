@@ -46,6 +46,7 @@ class Task extends Model
     protected $fillable = [
         'project_id', 'parent_task_id', 'title', 'description', 'reporter_id',
         'start_date', 'due_date', 'priority', 'status', 'platform', 'estimated_hours',
+        'status_updated_by', 'status_updated_at',
     ];
 
     protected $casts = [
@@ -54,7 +55,20 @@ class Task extends Model
         'estimated_hours'    => 'decimal:2',
         'overdue_alerted_at' => 'datetime',
         'completed_at'       => 'datetime',
+        'status_updated_by'  => 'array',
+        'status_updated_at'  => 'array',
     ];
+
+    /** Append a status-change entry (who + when) to the parallel audit arrays. */
+    public function pushStatusLog(int $userId): void
+    {
+        $by = $this->status_updated_by ?? [];
+        $at = $this->status_updated_at ?? [];
+        $by[] = $userId;
+        $at[] = now()->toIso8601String();
+        $this->status_updated_by = $by;
+        $this->status_updated_at = $at;
+    }
 
     // ---- Relationships ---------------------------------------------------
 

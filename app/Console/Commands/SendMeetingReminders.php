@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Mail\MeetingReminderMail;
+use App\Models\AppNotification;
 use App\Models\Meeting;
 use App\Models\MeetingSetting;
+use App\Models\NotificationSetting;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -21,12 +23,16 @@ class SendMeetingReminders extends Command
         $force = (bool) $this->option('force');
         $offsets = MeetingSetting::current()->reminder_offsets ?: [2, 1];
 
+        $notifySettings = NotificationSetting::current();
+        $mailOn   = $notifySettings->meeting_mail;
+        $notifyOn = $notifySettings->meeting_notify;
+
         // Self-heal: make sure this month's meetings exist (idempotent) before mailing.
         $this->call('meetings:generate');
 
         $meetings = Meeting::where('status', 'scheduled')
             ->whereDate('meeting_date', '>=', $today)
-            ->with('invitees:id,email')
+            ->with('invitees:id,email,name,notify_meeting_mail,notify_meeting_app')
             ->get();
 
         $sent = 0;
@@ -47,18 +53,32 @@ class SendMeetingReminders extends Command
                 }
             }
 
-            $emails = $meeting->invitees->pluck('email')->filter()->unique()->values();
-            if ($emails->isEmpty()) {
-                continue;
+            $mailCount = 0;
+            foreach ($meeting->invitees as $user) {
+                // Mail — global switch AND user preference.
+                if ($mailOn && $user->notify_meeting_mail && $user->email) {
+                    Mail::to($user->email)->queue(new MeetingReminderMail($meeting));
+                    $mailCount++;
+                }
+                // In-app notification — global switch AND user preference.
+                if ($notifyOn && $user->notify_meeting_app) {
+                    AppNotification::create([
+                        'user_id' => $user->id,
+                        'type'    => 'meeting',
+                        'message' => "Upcoming meeting: {$meeting->title} on ".$meeting->meeting_date->format('D, d M Y'),
+                        'data'    => ['meeting_uuid' => $meeting->uuid, 'link' => '/meetings/'.$meeting->uuid],
+                        'is_read' => false,
+                    ]);
+                }
             }
 
-            foreach ($emails as $email) {
-                Mail::to($email)->queue(new MeetingReminderMail($meeting));
+            if ($mailCount === 0 && ! $notifyOn) {
+                continue;
             }
 
             $meeting->forceFill(['reminder_sent_at' => now()])->save();
             $sent++;
-            $this->line("Queued reminder for #{$meeting->id} ({$meeting->title}) → {$emails->count()} invitee(s)");
+            $this->line("Reminder for #{$meeting->id} ({$meeting->title}) → {$mailCount} mail(s)".($notifyOn ? ' + notifications' : ''));
         }
 
         $this->info("Queued reminders for {$sent} meeting(s).");

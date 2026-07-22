@@ -17,7 +17,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Cache;
 
-#[Fillable(['name', 'email', 'employee_id', 'office_contact', 'image_id', 'role_id', 'department_id', 'designation_id', 'password', 'status'])]
+#[Fillable(['name', 'email', 'employee_id', 'office_contact', 'image_id', 'role_id', 'department_id', 'designation_id', 'password', 'status', 'notify_task_create_mail', 'notify_task_status_mail', 'notify_task_create_app', 'notify_task_status_app', 'notify_meeting_mail', 'notify_meeting_app'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -51,6 +51,12 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'status'            => 'integer',
             'role_id'           => 'integer',
+            'notify_task_create_mail' => 'boolean',
+            'notify_task_status_mail' => 'boolean',
+            'notify_task_create_app'  => 'boolean',
+            'notify_task_status_app'  => 'boolean',
+            'notify_meeting_mail'     => 'boolean',
+            'notify_meeting_app'      => 'boolean',
         ];
     }
 

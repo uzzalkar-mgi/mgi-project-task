@@ -30,6 +30,14 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status'          => session('status'),
+            'notifyPrefs'     => [
+                'notify_task_create_mail' => (bool) $user->notify_task_create_mail,
+                'notify_task_status_mail' => (bool) $user->notify_task_status_mail,
+                'notify_task_create_app'  => (bool) $user->notify_task_create_app,
+                'notify_task_status_app'  => (bool) $user->notify_task_status_app,
+                'notify_meeting_mail'     => (bool) $user->notify_meeting_mail,
+                'notify_meeting_app'      => (bool) $user->notify_meeting_app,
+            ],
             'department'      => $user->department?->name,
             'designation'     => $user->designation?->name,
             'departments'     => \App\Models\Department::active()->orderBy('name')->get(['id', 'name']),
@@ -76,6 +84,23 @@ class ProfileController extends Controller
         $request->user()->save();
 
         return Redirect::route('profile.edit');
+    }
+
+    /** Update the user's own notification preferences (opt-out toggles). */
+    public function updateNotifications(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'notify_task_create_mail' => ['boolean'],
+            'notify_task_status_mail' => ['boolean'],
+            'notify_task_create_app'  => ['boolean'],
+            'notify_task_status_app'  => ['boolean'],
+            'notify_meeting_mail'     => ['boolean'],
+            'notify_meeting_app'      => ['boolean'],
+        ]);
+
+        $request->user()->forceFill($data)->save();
+
+        return Redirect::route('profile.edit')->with('status', 'Notification preferences updated.');
     }
 
     /**

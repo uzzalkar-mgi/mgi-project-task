@@ -52,7 +52,8 @@ export default function Show({ meeting, canManage, canAttendance }) {
                     subtitle="Meeting details, attendance & minutes"
                     actions={
                         <div className="flex items-center gap-2">
-                            {canManage && <Link href={route('meetings.edit', meeting.uuid)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"><Icon name="edit" className="h-4 w-4" /> Edit</Link>}
+                            {canManage && meeting.status !== 'completed' && <Link href={route('meetings.edit', meeting.uuid)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"><Icon name="edit" className="h-4 w-4" /> Edit</Link>}
+                            {meeting.status === 'completed' && <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-600"><Icon name="check" className="h-4 w-4" /> Completed · locked</span>}
                             <Link href={route('meetings.index')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg> Back</Link>
                         </div>
                     }

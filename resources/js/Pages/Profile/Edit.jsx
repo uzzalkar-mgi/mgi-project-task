@@ -79,8 +79,50 @@ function AvatarUpload({ user, name }) {
     );
 }
 
+function NotificationPrefsForm({ prefs }) {
+    const { data, setData, patch, processing, recentlySuccessful } = useForm({ ...prefs });
+    const submit = (e) => { e.preventDefault(); patch(route('profile.notifications'), { preserveScroll: true }); };
+
+    const Toggle = ({ k, label }) => (
+        <label className="flex cursor-pointer items-center gap-2.5">
+            <button type="button" onClick={() => setData(k, !data[k])} className={`relative h-6 w-11 shrink-0 rounded-full transition ${data[k] ? 'bg-brand-600' : 'bg-slate-300'}`}>
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${data[k] ? 'left-[22px]' : 'left-0.5'}`} />
+            </button>
+            <span className="text-sm text-slate-700">{label}</span>
+        </label>
+    );
+
+    const Row = ({ title, mailKey, appKey }) => (
+        <div className="rounded-xl border border-slate-100 p-4">
+            <p className="mb-2.5 text-sm font-semibold text-slate-800">{title}</p>
+            <div className="flex flex-wrap gap-x-8 gap-y-3">
+                <Toggle k={mailKey} label="Email me" />
+                <Toggle k={appKey} label="In-app notification" />
+            </div>
+        </div>
+    );
+
+    return (
+        <form onSubmit={submit} className="max-w-3xl">
+            <SectionTitle>Notification Preferences</SectionTitle>
+            <p className="mb-3 text-xs text-slate-400">Choose how you're alerted. (Admins can disable a channel globally, which overrides these.)</p>
+            <div className="space-y-3">
+                <Row title="When a task is created for me" mailKey="notify_task_create_mail" appKey="notify_task_create_app" />
+                <Row title="When my task's status changes" mailKey="notify_task_status_mail" appKey="notify_task_status_app" />
+                <Row title="Meeting reminders" mailKey="notify_meeting_mail" appKey="notify_meeting_app" />
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+                <button type="submit" disabled={processing} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-70">
+                    <Icon name="check" className="h-4 w-4" /> Save Preferences
+                </button>
+                {recentlySuccessful && <span className="text-sm text-emerald-600">Saved.</span>}
+            </div>
+        </form>
+    );
+}
+
 export default function Edit({
-    mustVerifyEmail, status, department, designation, departments, designations,
+    mustVerifyEmail, status, department, designation, departments, designations, notifyPrefs = {},
     ledProjects = [], memberProjects = [], tasks = [], createdTasks = [],
 }) {
     const user = usePage().props.auth.user;
@@ -95,6 +137,7 @@ export default function Edit({
     const tabs = [
         { key: 'personal', label: 'Personal Information' },
         { key: 'password', label: 'Password' },
+        { key: 'notifications', label: 'Notifications' },
         { key: 'project', label: 'Project' },
         { key: 'tasks', label: 'Tasks' },
     ];
@@ -171,6 +214,11 @@ export default function Edit({
                     {/* Password tab */}
                     <div className={tab === 'password' ? '' : 'hidden'}>
                         <UpdatePasswordForm className="max-w-xl" />
+                    </div>
+
+                    {/* Notifications tab */}
+                    <div className={tab === 'notifications' ? '' : 'hidden'}>
+                        <NotificationPrefsForm prefs={notifyPrefs} />
                     </div>
 
                     {/* Project tab */}

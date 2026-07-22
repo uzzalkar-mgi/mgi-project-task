@@ -7,6 +7,7 @@ use App\Models\Comment;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\TaskNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -123,6 +124,8 @@ class TaskController extends Controller
         $task->assignees()->sync($data['assignee_ids'] ?? []);
         $task->watchers()->sync($data['watcher_ids'] ?? []);
 
+        TaskNotifier::notify($task, 'created', $request->user());
+
         return redirect()->route('tasks.index')->with('status', 'Task created.');
     }
 
@@ -185,12 +188,22 @@ class TaskController extends Controller
         // Target project must also be visible.
         abort_unless($this->visibleProjects($user)->whereKey($data['project_id'])->exists(), 403);
 
-        $task->update([
+        $statusChanged = $task->status !== $data['status'];
+        if ($statusChanged) {
+            $task->pushStatusLog($user->id);
+        }
+
+        $task->fill([
             ...collect($data)->except(['assignee_ids', 'watcher_ids'])->all(),
             'completed_at' => $data['status'] === 'done' ? ($task->completed_at ?? now()) : null,
         ]);
+        $task->save();
         $task->assignees()->sync($data['assignee_ids']);
         $task->watchers()->sync($data['watcher_ids'] ?? []);
+
+        if ($statusChanged) {
+            TaskNotifier::notify($task, 'status', $user);
+        }
 
         return redirect()->route('tasks.show', $task->uuid)->with('status', 'Task updated.');
     }
@@ -368,10 +381,18 @@ class TaskController extends Controller
             'status' => ['required', 'in:todo,in_progress,under_review,done,blocked'],
         ]);
 
-        $task->update([
-            'status'       => $data['status'],
-            'completed_at' => $data['status'] === 'done' ? ($task->completed_at ?? now()) : null,
-        ]);
+        $changed = $task->status !== $data['status'];
+        if ($changed) {
+            $task->pushStatusLog($request->user()->id);
+        }
+
+        $task->status = $data['status'];
+        $task->completed_at = $data['status'] === 'done' ? ($task->completed_at ?? now()) : null;
+        $task->save();
+
+        if ($changed) {
+            TaskNotifier::notify($task, 'status', $request->user());
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['ok' => true, 'completed_at' => $task->completed_at?->toDateTimeString()]);
