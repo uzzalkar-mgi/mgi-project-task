@@ -216,6 +216,8 @@ function WatchersEditor({ task, users }) {
 export default function Show({ task, comments, users = [], canChangeStatus, canModify, canAnswer, canAccept }) {
     const fileRef = useRef();
     const [shareCopied, setShareCopied] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
+    const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/shared/tasks/${task.task_no}`;
     const changeStatus = (status) => {
         if (status !== task.status) router.patch(route('tasks.status', task.uuid), { status }, { preserveScroll: true });
     };
@@ -230,21 +232,37 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                     subtitle={<>#{task.task_no} · in <Link href={route('projects.show', task.project_uuid)} className="text-brand-600 hover:underline">{task.project}</Link></>}
                     actions={
                         <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    const url = `${window.location.origin}/shared/tasks/${task.task_no}`;
-                                    navigator.clipboard?.writeText(url).then(
-                                        () => setShareCopied(true),
-                                        () => window.prompt('Copy this shareable link:', url),
-                                    );
-                                    setTimeout(() => setShareCopied(false), 2000);
-                                }}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                            >
-                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" /></svg>
-                                {shareCopied ? 'Link copied!' : 'Share'}
-                            </button>
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setShareOpen((v) => !v)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                                >
+                                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" /></svg>
+                                    Share
+                                </button>
+                                {shareOpen && (
+                                    <div className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                                        <p className="mb-1.5 text-xs font-semibold text-slate-700">Public read-only link</p>
+                                        <input readOnly value={shareUrl} onFocus={(e) => e.target.select()} className="w-full rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-2 text-xs text-slate-600 outline-none" />
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    navigator.clipboard?.writeText(shareUrl).then(() => setShareCopied(true), () => {});
+                                                    setTimeout(() => setShareCopied(false), 2000);
+                                                }}
+                                                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+                                            >
+                                                <Icon name="check" className="h-3.5 w-3.5" /> {shareCopied ? 'Copied!' : 'Copy link'}
+                                            </button>
+                                            <a href={shareUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                                                <Icon name="eye" className="h-3.5 w-3.5" /> Open
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             <Link href={route('tasks.index')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
                                 Back
