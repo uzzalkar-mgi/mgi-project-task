@@ -28,8 +28,8 @@ Route::get('/', function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 
-// Public, read-only task view — shareable link, no login required.
-Route::get('/shared/tasks/{task}', [TaskController::class, 'publicShow'])->name('tasks.public');
+// Public, read-only task view — shareable link (by task number), no login required.
+Route::get('/shared/tasks/{task:task_no}', [TaskController::class, 'publicShow'])->name('tasks.public');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('perm:projects.menu')->name('projects.index');

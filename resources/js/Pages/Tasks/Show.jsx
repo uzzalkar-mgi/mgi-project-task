@@ -233,7 +233,7 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                             <button
                                 type="button"
                                 onClick={() => {
-                                    const url = route('tasks.public', task.uuid);
+                                    const url = route('tasks.public', task.task_no);
                                     navigator.clipboard?.writeText(url).then(
                                         () => setShareCopied(true),
                                         () => window.prompt('Copy this shareable link:', url),

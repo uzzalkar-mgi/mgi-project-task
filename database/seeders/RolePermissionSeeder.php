@@ -57,8 +57,8 @@ class RolePermissionSeeder extends Seeder
         // Admin: full permission set (everything), but granted — not a super bypass.
         $adminPerms = Permission::pluck('id');
 
-        // Manager: everything except admin modules (users, roles, departments, designations).
-        $managerPerms = Permission::whereNotIn('module', ['users', 'roles', 'departments', 'designations'])->pluck('id');
+        // Manager: everything except admin modules (users, roles, departments, designations) and reports.
+        $managerPerms = Permission::whereNotIn('module', ['users', 'roles', 'departments', 'designations', 'reports'])->pluck('id');
 
         // Employee: view projects/timeline/milestones/meetings; work on tasks; personal dashboard.
         $memberPerms = Permission::whereIn('name', [
@@ -68,7 +68,6 @@ class RolePermissionSeeder extends Seeder
             'timeline.menu', 'timeline.view',
             'milestones.menu', 'milestones.view',
             'meetings.menu', 'meetings.view',
-            'reports.menu', 'reports.view',
         ])->pluck('id');
 
         $admin->permissions()->sync($adminPerms);
