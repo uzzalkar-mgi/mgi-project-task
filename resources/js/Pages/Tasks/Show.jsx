@@ -13,6 +13,12 @@ const TASK_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'U
 const STATUS_OPTS = [['todo', 'To Do'], ['in_progress', 'In Progress'], ['under_review', 'Under Review'], ['done', 'Done'], ['blocked', 'Blocked']];
 const PRIORITY_TONE = { urgent: 'red', high: 'amber', normal: 'blue', low: 'slate' };
 
+// Solid pill colors for the hero band (readable on the blue gradient).
+const HERO_STATUS = { todo: 'bg-emerald-500', in_progress: 'bg-sky-500', under_review: 'bg-amber-500', done: 'bg-green-600', blocked: 'bg-rose-500' };
+const HERO_PRIORITY = { urgent: 'bg-red-600', high: 'bg-rose-500', normal: 'bg-blue-500', low: 'bg-slate-500' };
+const HERO_PLATFORM = { web: 'bg-violet-500', android: 'bg-teal-500', both: 'bg-fuchsia-500' };
+const PLATFORM_LABEL = { web: 'Web', android: 'Android', both: 'Web+Android' };
+
 function fmt(d) {
     if (!d) return '—';
     return new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
@@ -164,6 +170,20 @@ function AnswerItem({ a, canAccept }) {
     );
 }
 
+function AvatarStack({ names = [], tone = 'bg-brand-500' }) {
+    if (!names.length) return <span className="text-sm text-slate-400">—</span>;
+    return (
+        <div className="flex items-center">
+            <div className="flex -space-x-2">
+                {names.slice(0, 4).map((n, i) => (
+                    <span key={i} title={n} className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-[10px] font-bold text-white ${tone}`}>{initials(n)}</span>
+                ))}
+                {names.length > 4 && <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-slate-300 text-[10px] font-bold text-slate-700">+{names.length - 4}</span>}
+            </div>
+        </div>
+    );
+}
+
 function WatchersEditor({ task, users }) {
     const [ids, setIds] = useState(task.watcher_ids ?? []);
     const [editing, setEditing] = useState(false);
@@ -217,6 +237,8 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
     const fileRef = useRef();
     const [shareCopied, setShareCopied] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
+    const [tab, setTab] = useState('answers');
+    const answered = task.answers.some((a) => a.is_accepted);
     const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/shared/tasks/${task.task_no}`;
     const changeStatus = (status) => {
         if (status !== task.status) router.patch(route('tasks.status', task.uuid), { status }, { preserveScroll: true });
@@ -279,46 +301,78 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
         >
             <Head title={task.title} />
 
+            {/* Hero band */}
+            <Card className="mb-6 overflow-hidden">
+                <div className="bg-gradient-to-r from-brand-800 via-brand-600 to-brand-500 px-6 py-5">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2 text-xs font-medium text-brand-100">
+                                <span className="rounded-full bg-white/15 px-2 py-0.5">#{task.task_no}</span>
+                                <span>·</span>
+                                <Link href={route('projects.show', task.project_uuid)} className="hover:text-white hover:underline">{task.project}</Link>
+                            </div>
+                            <h1 className="mt-1.5 text-xl font-bold text-white">{task.title}</h1>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm ${HERO_STATUS[task.status] ?? 'bg-white/20'}`}>{TASK_LABEL[task.status] ?? task.status}</span>
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize text-white shadow-sm ${HERO_PRIORITY[task.priority] ?? 'bg-white/20'}`}>{task.priority}</span>
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm ${HERO_PLATFORM[task.platform] ?? 'bg-white/20'}`}>{PLATFORM_LABEL[task.platform] ?? task.platform}</span>
+                            </div>
+                        </div>
+                        <div className="rounded-xl bg-white/10 px-4 py-2 backdrop-blur">
+                            <Countdown dueDate={task.due_date} status={task.status} completedAt={task.completed_at} />
+                        </div>
+                    </div>
+                </div>
+            </Card>
+
             <div className="grid items-start gap-6 lg:grid-cols-3">
-                {/* Task detail */}
+                {/* Task detail — sticky sidebar */}
                 <Card className="p-5 lg:col-span-1 lg:sticky lg:top-6">
-                    <div className="mb-4 flex flex-wrap items-center gap-2">
+                    {/* Status */}
+                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Status</label>
+                    {canChangeStatus ? (
+                        <select
+                            value={task.status}
+                            onChange={(e) => changeStatus(e.target.value)}
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        >
+                            {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                    ) : (
                         <Badge tone={TASK_TONE[task.status] ?? 'slate'}>{TASK_LABEL[task.status] ?? task.status}</Badge>
-                        <Badge tone={PRIORITY_TONE[task.priority] ?? 'slate'}>{task.priority}</Badge>
-                        <Badge tone={{ web: 'blue', android: 'green', both: 'amber' }[task.platform] ?? 'slate'}>{{ web: 'Web', android: 'Android', both: 'Web+Android' }[task.platform] ?? task.platform}</Badge>
-                    </div>
-                    <div className="mb-4"><Countdown dueDate={task.due_date} status={task.status} completedAt={task.completed_at} /></div>
-                    {task.description
-                        ? <div className="rich text-sm text-slate-600" dangerouslySetInnerHTML={{ __html: task.description }} />
-                        : <p className="text-sm text-slate-400">No description.</p>}
+                    )}
 
-                    {/* Status update */}
+                    {/* Description */}
                     <div className="mt-4 border-t border-slate-100 pt-4">
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Update Status</label>
-                        {canChangeStatus ? (
-                            <select
-                                value={task.status}
-                                onChange={(e) => changeStatus(e.target.value)}
-                                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                            >
-                                {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                            </select>
-                        ) : (
-                            <p className="text-xs text-slate-400">Only assignees can change the status.</p>
-                        )}
+                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Description</p>
+                        {task.description
+                            ? <div className="rich text-sm text-slate-600" dangerouslySetInnerHTML={{ __html: task.description }} />
+                            : <p className="text-sm text-slate-400">No description.</p>}
                     </div>
 
-                    <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 text-sm">
+                    {/* People */}
+                    <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Assignees</span>
+                            <AvatarStack names={task.assignees} />
+                        </div>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reporter</span>
+                            <span className="font-medium text-slate-700">{task.reporter ?? '—'}</span>
+                        </div>
+                    </div>
+
+                    {/* Dates */}
+                    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
+                        <div className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] uppercase tracking-wide text-slate-400">Start</p><p className="text-sm font-semibold text-slate-800">{fmt(task.start_date)}</p></div>
+                        <div className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] uppercase tracking-wide text-slate-400">Due</p><p className="text-sm font-semibold text-slate-800">{fmt(task.due_date)}</p></div>
+                        {task.completed_at && <div className="col-span-2 rounded-lg bg-emerald-50 px-3 py-2"><p className="text-[11px] uppercase tracking-wide text-emerald-500">Completed</p><p className="text-sm font-semibold text-emerald-700">{fmt(task.completed_at)}</p></div>}
                         {task.parent && (
-                            <div className="flex justify-between"><span className="text-slate-400">Parent Task</span>
-                                <Link href={route('tasks.show', task.parent.uuid)} className="font-medium text-brand-600 hover:underline">{task.parent.title}</Link>
+                            <div className="col-span-2 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+                                <span className="text-[11px] uppercase tracking-wide text-slate-400">Parent</span>
+                                <Link href={route('tasks.show', task.parent.uuid)} className="truncate text-sm font-medium text-brand-600 hover:underline">{task.parent.title}</Link>
                             </div>
                         )}
-                        <div className="flex justify-between"><span className="text-slate-400">Start Date</span><span className="font-medium text-slate-700">{fmt(task.start_date)}</span></div>
-                        <div className="flex justify-between"><span className="text-slate-400">End Date</span><span className="font-medium text-slate-700">{fmt(task.due_date)}</span></div>
-                        {task.completed_at && <div className="flex justify-between"><span className="text-slate-400">Completed</span><span className="font-medium text-emerald-600">{fmt(task.completed_at)}</span></div>}
-                        <div className="flex justify-between"><span className="text-slate-400">Reporter</span><span className="font-medium text-slate-700">{task.reporter ?? '—'}</span></div>
-                        <div className="flex justify-between"><span className="text-slate-400">Assignees</span><span className="font-medium text-slate-700">{task.assignees.join(', ') || '—'}</span></div>
                     </div>
 
                     {canModify ? (
@@ -372,64 +426,59 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                     </div>
                 </Card>
 
-                <div className="space-y-6 lg:col-span-2">
-                    {/* Answers (assignee deliverables) — primary */}
-                    <Card className="overflow-hidden">
-                        <div className="flex items-center justify-between gap-2 border-b border-brand-100 bg-gradient-to-r from-brand-50 to-transparent px-5 py-3.5">
-                            <div className="flex items-center gap-2.5">
-                                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm"><Icon name="check" className="h-5 w-5" /></span>
-                                <div>
-                                    <h3 className="text-sm font-bold text-slate-900">Answers</h3>
-                                    <p className="text-xs text-slate-500">Deliverables against this task</p>
-                                </div>
-                                <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-100 px-1.5 text-xs font-bold text-brand-700">{task.answers.length}</span>
+                {/* Right: tabbed Answers / Discussion */}
+                <Card className="overflow-hidden lg:col-span-2">
+                    <div className="flex items-center gap-1 border-b border-slate-100 px-3 pt-3">
+                        <button
+                            onClick={() => setTab('answers')}
+                            className={`flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${tab === 'answers' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <Icon name="check" className="h-4 w-4" /> Answers
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-100 px-1.5 text-xs font-bold text-brand-700">{task.answers.length}</span>
+                            {answered
+                                ? <span className="ml-1 hidden rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-white sm:inline">Answered</span>
+                                : <span className="ml-1 hidden rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-600 sm:inline">Pending</span>}
+                        </button>
+                        <button
+                            onClick={() => setTab('discussion')}
+                            className={`flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${tab === 'discussion' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                            Discussion
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-600">{comments.length}</span>
+                        </button>
+                    </div>
+
+                    {/* Answers tab */}
+                    <div className={`p-5 ${tab === 'answers' ? '' : 'hidden'}`}>
+                        {canAnswer && <div className="mb-4"><AnswerForm taskUuid={task.uuid} /></div>}
+                        {task.answers.length === 0 ? (
+                            <div className="flex flex-col items-center py-10 text-center">
+                                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-500"><Icon name="check" className="h-6 w-6" /></span>
+                                <p className="mt-3 text-sm text-slate-400">{canAnswer ? 'No answers yet — post the first one above.' : 'No answers submitted yet.'}</p>
                             </div>
-                            {task.answers.some((a) => a.is_accepted)
-                                ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white"><Icon name="check" className="h-3.5 w-3.5" /> Answered</span>
-                                : <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-600">Pending</span>}
-                        </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {task.answers.map((a) => <AnswerItem key={a.id} a={a} canAccept={canAccept} />)}
+                            </div>
+                        )}
+                    </div>
 
-                        <div className="p-5">
-                            {canAnswer && <div className="mb-4"><AnswerForm taskUuid={task.uuid} /></div>}
-
-                            {task.answers.length === 0 ? (
-                                <div className="flex flex-col items-center py-8 text-center">
-                                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-400"><Icon name="check" className="h-5 w-5" /></span>
-                                    <p className="mt-2 text-sm text-slate-400">{canAnswer ? 'No answers yet — post the first one above.' : 'No answers submitted yet.'}</p>
+                    {/* Discussion tab */}
+                    <div className={`p-5 ${tab === 'discussion' ? '' : 'hidden'}`}>
+                        <CommentForm taskUuid={task.uuid} />
+                        <div className="mt-4 divide-y divide-slate-100">
+                            {comments.length === 0 ? (
+                                <div className="flex flex-col items-center py-10 text-center">
+                                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg></span>
+                                    <p className="mt-3 text-sm text-slate-400">No comments yet. Start the discussion.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
-                                    {task.answers.map((a) => <AnswerItem key={a.id} a={a} canAccept={canAccept} />)}
-                                </div>
+                                comments.map((c) => <CommentItem key={c.id} c={c} taskUuid={task.uuid} />)
                             )}
                         </div>
-                    </Card>
-
-                    {/* Comments / discussion — secondary */}
-                    <Card className="overflow-hidden">
-                        <div className="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
-                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                            </span>
-                            <div>
-                                <h3 className="text-sm font-bold text-slate-900">Discussion</h3>
-                                <p className="text-xs text-slate-500">Comments &amp; replies</p>
-                            </div>
-                            <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-600">{comments.length}</span>
-                        </div>
-
-                        <div className="p-5">
-                            <CommentForm taskUuid={task.uuid} />
-                            <div className="mt-4 divide-y divide-slate-100">
-                                {comments.length === 0 ? (
-                                    <p className="py-8 text-center text-sm text-slate-400">No comments yet. Start the discussion.</p>
-                                ) : (
-                                    comments.map((c) => <CommentItem key={c.id} c={c} taskUuid={task.uuid} />)
-                                )}
-                            </div>
-                        </div>
-                    </Card>
-                </div>
+                    </div>
+                </Card>
             </div>
         </AuthenticatedLayout>
     );

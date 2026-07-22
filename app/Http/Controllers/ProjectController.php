@@ -172,7 +172,7 @@ class ProjectController extends Controller
         $project->load([
             'lead:id,name', 'primaryResponsible:id,name', 'secondaryResponsible:id,name',
             'members:id,name', 'tags:id,name',
-            'tasks' => fn ($q) => $q->with(['assignees:id,name', 'attachments'])->orderBy('due_date'),
+            'tasks' => fn ($q) => $q->with(['assignees:id,name', 'attachments'])->latest(),
         ]);
 
         return Inertia::render('Projects/Show', [

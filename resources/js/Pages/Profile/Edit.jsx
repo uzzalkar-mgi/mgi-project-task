@@ -1,5 +1,6 @@
 import { Card, SectionTitle, Badge } from '@/Components/ui/Primitives';
 import { Icon } from '@/Components/ui/Icon';
+import { SearchInput } from '@/Components/ui/SearchInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
@@ -132,14 +133,30 @@ export default function Edit({
         ? new Date(user.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
         : '—';
 
-    const [tab, setTab] = useState('personal'); // 'personal' | 'password' | 'project' | 'tasks'
+    const [tab, setTab] = useState('personal');
+    const [q, setQ] = useState('');
+    const term = q.trim().toLowerCase();
+    const match = (...vals) => !term || vals.filter(Boolean).some((v) => String(v).toLowerCase().includes(term));
+
+    // Merged project list (led + member, deduped).
+    const projectList = [
+        ...ledProjects.map((p) => ({ ...p, role: 'Lead', tone: 'blue' })),
+        ...memberProjects.filter((m) => !ledProjects.some((l) => l.uuid === m.uuid)).map((p) => ({ ...p, role: 'Member', tone: 'slate' })),
+    ];
+    const dueList = tasks.filter((t) => t.status !== 'done' && t.due_date).sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+    const createdCount = createdTasks.reduce((n, g) => n + g.tasks.length, 0);
+
+    const switchTab = (t) => { setTab(t); setQ(''); };
+    const today = new Date().setHours(0, 0, 0, 0);
 
     const tabs = [
         { key: 'personal', label: 'Personal Information' },
         { key: 'password', label: 'Password' },
         { key: 'notifications', label: 'Notifications' },
-        { key: 'project', label: 'Project' },
-        { key: 'tasks', label: 'Tasks' },
+        { key: 'project', label: `Project (${projectList.length})` },
+        { key: 'tasks', label: `Assign Task (${tasks.length})` },
+        { key: 'taskdue', label: `Task Due (${dueList.length})` },
+        { key: 'created', label: `Created Task (${createdCount})` },
     ];
 
     return (
@@ -194,7 +211,7 @@ export default function Edit({
                             <button
                                 key={t.key}
                                 type="button"
-                                onClick={() => setTab(t.key)}
+                                onClick={() => switchTab(t.key)}
                                 className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition ${
                                     tab === t.key
                                         ? 'border-brand-600 text-brand-700'
@@ -223,40 +240,77 @@ export default function Edit({
 
                     {/* Project tab */}
                     <div className={tab === 'project' ? '' : 'hidden'}>
-                        <SectionTitle>My Projects ({ledProjects.length + memberProjects.filter((m) => !ledProjects.some((l) => l.uuid === m.uuid)).length})</SectionTitle>
-                        {ledProjects.length === 0 && memberProjects.length === 0 ? (
-                            <p className="text-sm text-slate-400">Not part of any project.</p>
-                        ) : (
-                            <div className="max-h-[500px] overflow-y-auto overflow-x-auto">
-                                <div className="space-y-2 min-w-[400px]">
-                                    {ledProjects.map((p) => (
-                                        <Link key={`l${p.uuid}`} href={route('projects.show', p.uuid)} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 hover:bg-slate-50">
-                                            <span className="text-sm font-medium text-slate-800">{p.name}</span>
-                                            <span className="flex items-center gap-2"><Badge tone="blue">Lead</Badge><Badge tone={PROJ_TONE[p.status] ?? 'slate'}>{p.status}</Badge></span>
-                                        </Link>
-                                    ))}
-                                    {memberProjects.filter((m) => !ledProjects.some((l) => l.uuid === m.uuid)).map((p) => (
-                                        <Link key={`m${p.uuid}`} href={route('projects.show', p.uuid)} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 hover:bg-slate-50">
-                                            <span className="text-sm font-medium text-slate-800">{p.name}</span>
-                                            <span className="flex items-center gap-2"><Badge tone="slate">Member</Badge><Badge tone={PROJ_TONE[p.status] ?? 'slate'}>{p.status}</Badge></span>
-                                        </Link>
-                                    ))}
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                            <SectionTitle>My Projects ({projectList.length})</SectionTitle>
+                            <SearchInput value={q} onChange={setQ} placeholder="Search projects…" />
+                        </div>
+                        {(() => {
+                            const rows = projectList.filter((p) => match(p.name, p.status, p.role));
+                            if (projectList.length === 0) return <p className="text-sm text-slate-400">Not part of any project.</p>;
+                            if (rows.length === 0) return <p className="text-sm text-slate-400">No projects match “{q}”.</p>;
+                            return (
+                                <div className="max-h-[500px] overflow-y-auto overflow-x-auto">
+                                    <div className="min-w-[400px] space-y-2">
+                                        {rows.map((p) => (
+                                            <Link key={`${p.role}${p.uuid}`} href={route('projects.show', p.uuid)} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2 hover:bg-slate-50">
+                                                <span className="text-sm font-medium text-slate-800">{p.name}</span>
+                                                <span className="flex items-center gap-2"><Badge tone={p.tone}>{p.role}</Badge><Badge tone={PROJ_TONE[p.status] ?? 'slate'}>{p.status}</Badge></span>
+                                            </Link>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
 
-                    {/* Tasks tab */}
+                    {/* Task Due tab */}
+                    <div className={tab === 'taskdue' ? '' : 'hidden'}>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                            <SectionTitle>Task Due ({dueList.length})</SectionTitle>
+                            <SearchInput value={q} onChange={setQ} placeholder="Search due tasks…" />
+                        </div>
+                        {(() => {
+                            const rows = dueList.filter((t) => match(t.title, t.project, t.status));
+                            if (dueList.length === 0) return <p className="text-sm text-slate-400">No pending due tasks.</p>;
+                            if (rows.length === 0) return <p className="text-sm text-slate-400">No due tasks match “{q}”.</p>;
+                            return (
+                                <div className="max-h-[500px] overflow-y-auto overflow-x-auto">
+                                    <ul className="min-w-[500px] divide-y divide-slate-100">
+                                        {rows.map((t) => {
+                                            const overdue = new Date(t.due_date).setHours(0, 0, 0, 0) < today;
+                                            return (
+                                                <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
+                                                    <div className="min-w-0">
+                                                        <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
+                                                        <p className="truncate text-xs text-slate-400">{t.project} · due <span className={overdue ? 'font-semibold text-rose-500' : ''}>{fmt(t.due_date)}</span></p>
+                                                    </div>
+                                                    <div className="flex shrink-0 items-center gap-2">
+                                                        {overdue && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-600">Overdue</span>}
+                                                        <Badge tone={TASK_TONE[t.status] ?? 'slate'}>{TASK_LABEL[t.status] ?? t.status}</Badge>
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </div>
+                            );
+                        })()}
+                    </div>
+
+                    {/* Assign Task tab */}
                     <div className={tab === 'tasks' ? '' : 'hidden'}>
-                        {/* Assigned Tasks */}
-                        <div className="mb-6">
+                        <div className="mb-3 flex items-center justify-between gap-2">
                             <SectionTitle>Assigned Tasks ({tasks.length})</SectionTitle>
-                            {tasks.length === 0 ? (
-                                <p className="text-sm text-slate-400">No tasks assigned.</p>
-                            ) : (
-                                <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
-                                    <ul className="divide-y divide-slate-100 min-w-[500px]">
-                                        {tasks.map((t) => (
+                            <SearchInput value={q} onChange={setQ} placeholder="Search assigned tasks…" />
+                        </div>
+                        {(() => {
+                            const rows = tasks.filter((t) => match(t.title, t.project, t.status, t.created_by));
+                            if (tasks.length === 0) return <p className="text-sm text-slate-400">No tasks assigned.</p>;
+                            if (rows.length === 0) return <p className="text-sm text-slate-400">No tasks match “{q}”.</p>;
+                            return (
+                                <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
+                                    <ul className="min-w-[500px] divide-y divide-slate-100">
+                                        {rows.map((t) => (
                                             <li key={t.uuid} className="flex items-center justify-between gap-3 py-2.5">
                                                 <div className="min-w-0">
                                                     <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
@@ -275,18 +329,26 @@ export default function Edit({
                                         ))}
                                     </ul>
                                 </div>
-                            )}
-                        </div>
+                            );
+                        })()}
+                    </div>
 
-                        {/* Created Tasks (grouped by project) */}
-                        <div>
-                            <SectionTitle>Created Tasks ({createdTasks.reduce((n, g) => n + g.tasks.length, 0)})</SectionTitle>
-                            {createdTasks.length === 0 ? (
-                                <p className="text-sm text-slate-400">You haven't created any tasks.</p>
-                            ) : (
-                                <div className="max-h-[400px] overflow-y-auto overflow-x-auto">
-                                    <div className="space-y-4 min-w-[500px]">
-                                        {createdTasks.map((g) => (
+                    {/* Created Task tab */}
+                    <div className={tab === 'created' ? '' : 'hidden'}>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                            <SectionTitle>Created Tasks ({createdCount})</SectionTitle>
+                            <SearchInput value={q} onChange={setQ} placeholder="Search created tasks…" />
+                        </div>
+                        {(() => {
+                            const groups = createdTasks
+                                .map((g) => ({ ...g, tasks: g.tasks.filter((t) => match(t.title, g.project, t.status)) }))
+                                .filter((g) => g.tasks.length > 0);
+                            if (createdCount === 0) return <p className="text-sm text-slate-400">You haven't created any tasks.</p>;
+                            if (groups.length === 0) return <p className="text-sm text-slate-400">No created tasks match “{q}”.</p>;
+                            return (
+                                <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
+                                    <div className="min-w-[500px] space-y-4">
+                                        {groups.map((g) => (
                                             <div key={g.project}>
                                                 <div className="mb-1 flex items-center gap-2">
                                                     <Icon name="projects" className="h-4 w-4 text-slate-400" />
@@ -310,8 +372,8 @@ export default function Edit({
                                         ))}
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            );
+                        })()}
                     </div>
                 </Card>
 

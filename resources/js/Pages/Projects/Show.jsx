@@ -3,6 +3,9 @@ import { Icon } from '@/Components/ui/Icon';
 import { AttachmentViewer } from '@/Components/ui/AttachmentViewer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
+
+const PER_PAGE = 10;
 
 const STATUS_TONE = { active: 'green', on_hold: 'amber', completed: 'blue', cancelled: 'red' };
 const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
@@ -29,6 +32,22 @@ function Meta({ icon, label, value }) {
 }
 
 export default function Show({ project, canEdit }) {
+    const [tab, setTab] = useState('all');
+    const [page, setPage] = useState(1);
+
+    // Due tab: not-done tasks with a due date, soonest first.
+    const dueTasks = project.tasks
+        .filter((t) => t.status !== 'done' && t.due_date)
+        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+    const list = tab === 'due' ? dueTasks : project.tasks;
+    const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+    const cur = Math.min(page, pages);
+    const pagedTasks = list.slice((cur - 1) * PER_PAGE, cur * PER_PAGE);
+
+    const switchTab = (t) => { setTab(t); setPage(1); };
+    const today = new Date().setHours(0, 0, 0, 0);
+
     return (
         <AuthenticatedLayout
             header={
@@ -88,17 +107,27 @@ export default function Show({ project, canEdit }) {
 
                 {/* Tasks */}
                 <Card className="p-5 lg:col-span-2">
-                    <SectionTitle>Tasks ({project.tasks.length})</SectionTitle>
-                    {project.tasks.length === 0 ? (
-                        <p className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">No tasks yet.</p>
+                    <div className="mb-3 flex items-center gap-1 border-b border-slate-100">
+                        <button onClick={() => switchTab('all')} className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-semibold transition ${tab === 'all' ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+                            Tasks <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-600">{project.tasks.length}</span>
+                        </button>
+                        <button onClick={() => switchTab('due')} className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-semibold transition ${tab === 'due' ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+                            Task Due <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs font-bold text-amber-600">{dueTasks.length}</span>
+                        </button>
+                    </div>
+                    {list.length === 0 ? (
+                        <p className="rounded-lg border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-400">{tab === 'due' ? 'No pending due tasks.' : 'No tasks yet.'}</p>
                     ) : (
                         <ul className="divide-y divide-slate-100">
-                            {project.tasks.map((t) => (
+                            {pagedTasks.map((t) => (
                                 <li key={t.uuid} className="py-2.5">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="min-w-0">
                                             <Link href={route('tasks.show', t.uuid)} className="truncate text-sm font-medium text-slate-800 hover:text-brand-700">{t.title}</Link>
-                                            <p className="truncate text-xs text-slate-400">{t.assignees.join(', ') || 'Unassigned'} · due {fmt(t.due_date)}</p>
+                                            <p className="truncate text-xs text-slate-400">
+                                                {t.assignees.join(', ') || 'Unassigned'} · due{' '}
+                                                <span className={t.status !== 'done' && t.due_date && new Date(t.due_date).setHours(0, 0, 0, 0) < today ? 'font-semibold text-rose-500' : ''}>{fmt(t.due_date)}</span>
+                                            </p>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-2">
                                             <Badge tone={{ web: 'blue', android: 'green', both: 'amber' }[t.platform] ?? 'slate'}>{{ web: 'Web', android: 'Android', both: 'Web+Android' }[t.platform] ?? t.platform}</Badge>
@@ -117,6 +146,13 @@ export default function Show({ project, canEdit }) {
                                 </li>
                             ))}
                         </ul>
+                    )}
+                    {pages > 1 && (
+                        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
+                            <button onClick={() => setPage(cur - 1)} disabled={cur <= 1} className="rounded-md border border-slate-200 px-2.5 py-1 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40">Prev</button>
+                            <span className="text-slate-400">Page {cur} of {pages} · {list.length} tasks</span>
+                            <button onClick={() => setPage(cur + 1)} disabled={cur >= pages} className="rounded-md border border-slate-200 px-2.5 py-1 font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40">Next</button>
+                        </div>
                     )}
                 </Card>
             </div>
