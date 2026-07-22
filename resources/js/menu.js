@@ -10,6 +10,13 @@ export const MENU = [
     { label: 'Meetings', route: 'meetings.index', match: 'meetings.*', icon: 'calendar', permission: 'meetings.menu' },
     { label: 'Team', route: 'users.index', match: 'users.*', icon: 'team', permission: 'users.menu' },
     {
+        label: 'Reports', icon: 'reports', match: ['reports.*'],
+        children: [
+            { label: 'Employee Report', route: 'reports.employees', match: 'reports.employees', icon: 'team', permission: 'reports.menu' },
+            { label: 'Task Report', route: 'reports.tasks', match: 'reports.tasks*', icon: 'tasks', permission: 'reports.menu' },
+        ],
+    },
+    {
         label: 'Settings', icon: 'gear', match: ['roles.*', 'departments.*', 'designations.*'],
         children: [
             { label: 'Roles', route: 'roles.index', match: 'roles.*', icon: 'gear', permission: 'roles.menu' },

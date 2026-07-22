@@ -19,6 +19,25 @@ class Task extends Model
         return ['uuid'];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (Task $task) {
+            if (empty($task->task_no)) {
+                $task->task_no = static::generateTaskNo();
+            }
+        });
+    }
+
+    /** Unique 10-digit task number (no leading zero). */
+    public static function generateTaskNo(): string
+    {
+        do {
+            $no = (string) random_int(1_000_000_000, 9_999_999_999);
+        } while (static::withTrashed()->where('task_no', $no)->exists());
+
+        return $no;
+    }
+
     public function getRouteKeyName(): string
     {
         return 'uuid';

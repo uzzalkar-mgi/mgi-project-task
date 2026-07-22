@@ -3,6 +3,7 @@ import { Icon } from '@/Components/ui/Icon';
 import { Countdown } from '@/Components/ui/Countdown';
 import { AttachmentViewer } from '@/Components/ui/AttachmentViewer';
 import { RichTextEditor } from '@/Components/ui/RichTextEditor';
+import { MultiCombobox } from '@/Components/ui/Combobox';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useRef, useState } from 'react';
@@ -163,8 +164,58 @@ function AnswerItem({ a, canAccept }) {
     );
 }
 
-export default function Show({ task, comments, canChangeStatus, canModify, canAnswer, canAccept }) {
+function WatchersEditor({ task, users }) {
+    const [ids, setIds] = useState(task.watcher_ids ?? []);
+    const [editing, setEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const userOpts = users.map((u) => ({ value: u.id, label: u.employee_id ? `${u.name} (${u.employee_id})` : u.name, hint: u.employee_id }));
+
+    const save = () => {
+        setSaving(true);
+        router.patch(route('tasks.watchers', task.uuid), { watcher_ids: ids }, {
+            preserveScroll: true,
+            onSuccess: () => setEditing(false),
+            onFinish: () => setSaving(false),
+        });
+    };
+
+    return (
+        <div className="mt-4 border-t border-slate-100 pt-4">
+            <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tag / Watchers ({task.watchers?.length ?? 0})</span>
+                {!editing && <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"><Icon name="edit" className="h-3.5 w-3.5" /> Edit</button>}
+            </div>
+
+            {editing ? (
+                <>
+                    <MultiCombobox options={userOpts} values={ids} onChange={setIds} placeholder="Tag members to notify…" />
+                    <p className="mt-1.5 text-xs text-slate-400">Watchers get reminder &amp; overdue notifications, but aren't responsible.</p>
+                    <div className="mt-2 flex items-center gap-2">
+                        <button onClick={save} disabled={saving} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+                            <Icon name="check" className="h-3.5 w-3.5" /> {saving ? 'Saving…' : 'Save'}
+                        </button>
+                        <button onClick={() => { setIds(task.watcher_ids ?? []); setEditing(false); }} className="text-xs font-medium text-slate-400 hover:text-slate-700">Cancel</button>
+                    </div>
+                </>
+            ) : task.watchers?.length ? (
+                <div className="flex flex-wrap gap-1.5">
+                    {task.watchers.map((w) => (
+                        <span key={w.id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[9px] font-bold text-white">{initials(w.name)}</span>
+                            {w.name}
+                        </span>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-xs text-slate-400">No one tagged yet.</p>
+            )}
+        </div>
+    );
+}
+
+export default function Show({ task, comments, users = [], canChangeStatus, canModify, canAnswer, canAccept }) {
     const fileRef = useRef();
+    const [shareCopied, setShareCopied] = useState(false);
     const changeStatus = (status) => {
         if (status !== task.status) router.patch(route('tasks.status', task.uuid), { status }, { preserveScroll: true });
     };
@@ -176,9 +227,24 @@ export default function Show({ task, comments, canChangeStatus, canModify, canAn
             header={
                 <PageHeader
                     title={task.title}
-                    subtitle={<>in <Link href={route('projects.show', task.project_uuid)} className="text-brand-600 hover:underline">{task.project}</Link></>}
+                    subtitle={<>#{task.task_no} · in <Link href={route('projects.show', task.project_uuid)} className="text-brand-600 hover:underline">{task.project}</Link></>}
                     actions={
                         <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const url = route('tasks.public', task.uuid);
+                                    navigator.clipboard?.writeText(url).then(
+                                        () => setShareCopied(true),
+                                        () => window.prompt('Copy this shareable link:', url),
+                                    );
+                                    setTimeout(() => setShareCopied(false), 2000);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                            >
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" /></svg>
+                                {shareCopied ? 'Link copied!' : 'Share'}
+                            </button>
                             <Link href={route('tasks.index')} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
                                 Back
@@ -235,8 +301,25 @@ export default function Show({ task, comments, canChangeStatus, canModify, canAn
                         {task.completed_at && <div className="flex justify-between"><span className="text-slate-400">Completed</span><span className="font-medium text-emerald-600">{fmt(task.completed_at)}</span></div>}
                         <div className="flex justify-between"><span className="text-slate-400">Reporter</span><span className="font-medium text-slate-700">{task.reporter ?? '—'}</span></div>
                         <div className="flex justify-between"><span className="text-slate-400">Assignees</span><span className="font-medium text-slate-700">{task.assignees.join(', ') || '—'}</span></div>
-                        <div className="flex justify-between gap-3"><span className="shrink-0 text-slate-400">Tagged</span><span className="text-right font-medium text-slate-700">{task.watchers?.length ? task.watchers.map((w) => w.name).join(', ') : '—'}</span></div>
                     </div>
+
+                    {canModify ? (
+                        <WatchersEditor task={task} users={users} />
+                    ) : (
+                        <div className="mt-4 border-t border-slate-100 pt-4">
+                            <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-400">Tag / Watchers ({task.watchers?.length ?? 0})</span>
+                            {task.watchers?.length ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {task.watchers.map((w) => (
+                                        <span key={w.id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                                            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[9px] font-bold text-white">{initials(w.name)}</span>
+                                            {w.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : <p className="text-xs text-slate-400">No one tagged yet.</p>}
+                        </div>
+                    )}
 
                     {task.subtasks?.length > 0 && (
                         <div className="mt-4 border-t border-slate-100 pt-4">

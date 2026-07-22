@@ -21,6 +21,7 @@ class RolePermissionSeeder extends Seeder
         'timeline'     => ['actions' => ['menu', 'view'],                                         'label' => 'Timeline'],
         'milestones'   => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Milestones'],
         'meetings'     => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'attendance'], 'label' => 'Monthly Meetings'],
+        'reports'      => ['actions' => ['menu', 'view'],                                         'label' => 'Reports'],
         'users'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete', 'manage'], 'label' => 'Team / Users'],
         'roles'        => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Roles & Permissions'],
         'departments'  => ['actions' => ['menu', 'view', 'create', 'update', 'delete'],           'label' => 'Departments'],
@@ -67,6 +68,7 @@ class RolePermissionSeeder extends Seeder
             'timeline.menu', 'timeline.view',
             'milestones.menu', 'milestones.view',
             'meetings.menu', 'meetings.view',
+            'reports.menu', 'reports.view',
         ])->pluck('id');
 
         $admin->permissions()->sync($adminPerms);

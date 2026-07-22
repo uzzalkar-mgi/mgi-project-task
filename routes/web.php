@@ -11,6 +11,7 @@ use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimelineController;
@@ -26,6 +27,9 @@ Route::get('/', function () {
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
+
+// Public, read-only task view — shareable link, no login required.
+Route::get('/shared/tasks/{task}', [TaskController::class, 'publicShow'])->name('tasks.public');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('perm:projects.menu')->name('projects.index');
@@ -43,6 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tasks/{task}', [TaskController::class, 'show'])->middleware('perm:tasks.menu')->name('tasks.show');
     Route::get('/tasks/{task}/comments', [TaskController::class, 'comments'])->name('tasks.comments');
     Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.status');
+    Route::patch('/tasks/{task}/watchers', [TaskController::class, 'updateWatchers'])->name('tasks.watchers');
     Route::post('/tasks/{task}/attachments', [TaskController::class, 'uploadAttachment'])->name('tasks.attachments.store');
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
@@ -51,6 +56,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/tasks/{task}/answers', [AnswerController::class, 'store'])->name('answers.store');
     Route::patch('/answers/{answer}/accept', [AnswerController::class, 'accept'])->name('answers.accept');
     Route::delete('/answers/{answer}', [AnswerController::class, 'destroy'])->name('answers.destroy');
+
+    // Reports.
+    Route::get('/reports/employees', [ReportController::class, 'employees'])->middleware('perm:reports.menu')->name('reports.employees');
+    Route::get('/reports/tasks', [ReportController::class, 'tasks'])->middleware('perm:reports.menu')->name('reports.tasks');
+    Route::get('/reports/tasks/export', [ReportController::class, 'export'])->middleware('perm:reports.menu')->name('reports.tasks.export');
 
     Route::get('/timeline', [TimelineController::class, 'index'])->middleware('perm:timeline.menu')->name('timeline.index');
     Route::get('/milestones', [MilestoneController::class, 'index'])->middleware('perm:milestones.menu')->name('milestones.index');

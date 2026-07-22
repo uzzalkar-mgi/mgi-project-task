@@ -50,6 +50,7 @@ class TaskController extends Controller
 
         $tasks = $tasks->map(fn (Task $t) => [
             'uuid'        => $t->uuid,
+            'task_no'     => $t->task_no,
             'title'       => $t->title,
             'project'     => $t->project?->name,
             'project_uuid' => $t->project?->uuid,
@@ -216,6 +217,7 @@ class TaskController extends Controller
         return Inertia::render('Tasks/Show', [
             'task' => [
                 'uuid'        => $task->uuid,
+                'task_no'     => $task->task_no,
                 'title'       => $task->title,
                 'description' => $task->description,
                 'status'      => $task->status,
@@ -229,6 +231,7 @@ class TaskController extends Controller
                 'reporter'    => $task->reporter?->name,
                 'assignees'   => $task->assignees->pluck('name'),
                 'watchers'    => $task->watchers->map(fn ($w) => ['id' => $w->id, 'name' => $w->name]),
+                'watcher_ids' => $task->watchers->pluck('id'),
                 'parent'      => $task->parent ? ['uuid' => $task->parent->uuid, 'title' => $task->parent->title] : null,
                 'subtasks'    => $task->subtasks->map(fn ($s) => [
                     'uuid' => $s->uuid, 'title' => $s->title, 'status' => $s->status, 'due_date' => $s->due_date?->toDateString(),
@@ -249,10 +252,56 @@ class TaskController extends Controller
                 ]),
             ],
             'comments' => Comment::treeForTask($task),
+            'users'    => $this->canModify($user, $task)
+                ? User::active()->orderBy('name')->get(['id', 'name', 'employee_id'])
+                : [],
             'canChangeStatus' => $this->canChangeStatus($user, $task),
             'canModify' => $this->canModify($user, $task),
             'canAnswer' => $this->canAnswer($user, $task),
             'canAccept' => $this->canModify($user, $task),
+        ]);
+    }
+
+    /** Public, read-only task view — shareable by uuid link, no auth required. */
+    public function publicShow(Task $task): Response
+    {
+        $task->load([
+            'project:id,name',
+            'assignees:id,name',
+            'reporter:id,name',
+            'attachments',
+            'answers' => fn ($q) => $q->with(['author:id,name', 'attachments'])->orderByDesc('is_accepted')->orderBy('created_at'),
+        ]);
+
+        return Inertia::render('Tasks/Public', [
+            'task' => [
+                'task_no'      => $task->task_no,
+                'title'        => $task->title,
+                'description'  => $task->description,
+                'status'       => $task->status,
+                'priority'     => $task->priority,
+                'platform'     => $task->platform,
+                'start_date'   => $task->start_date?->toDateString(),
+                'due_date'     => $task->due_date?->toDateString(),
+                'completed_at' => $task->completed_at?->toDateTimeString(),
+                'project'      => $task->project?->name,
+                'reporter'     => $task->reporter?->name,
+                'assignees'    => $task->assignees->pluck('name'),
+                'attachments'  => $task->attachments->map(fn ($a) => [
+                    'title' => $a->title, 'url' => $a->url, 'file_type' => $a->file_type,
+                ]),
+                'answers'      => $task->answers->map(fn ($a) => [
+                    'id'          => $a->id,
+                    'body'        => $a->body,
+                    'author'      => $a->author?->name,
+                    'is_accepted' => $a->is_accepted,
+                    'created_at'  => $a->created_at?->diffForHumans(),
+                    'attachments' => $a->attachments->map(fn ($t) => [
+                        'title' => $t->title, 'url' => $t->url, 'file_type' => $t->file_type,
+                    ]),
+                ]),
+            ],
+            'comments' => Comment::treeForTask($task),
         ]);
     }
 
@@ -329,6 +378,23 @@ class TaskController extends Controller
         }
 
         return back()->with('status', 'Task status updated.');
+    }
+
+    /** Inline update of tagged watchers from the task view page. */
+    public function updateWatchers(Request $request, Task $task): RedirectResponse
+    {
+        $user = $request->user();
+        $task->loadMissing('assignees:id');
+        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists() && $this->canModify($user, $task), 403);
+
+        $data = $request->validate([
+            'watcher_ids'   => ['array'],
+            'watcher_ids.*' => ['exists:users,id'],
+        ]);
+
+        $task->watchers()->sync($data['watcher_ids'] ?? []);
+
+        return back()->with('status', 'Watchers updated.');
     }
 
     /** Attachment upload by assignees (mgi-connect central attachments + pivot). */
