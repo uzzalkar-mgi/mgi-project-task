@@ -45,7 +45,7 @@ class ProfileController extends Controller
             'ledProjects'     => $user->ledProjects->map(fn ($p) => [
                 'uuid' => $p->uuid, 'name' => $p->name, 'status' => $p->status, 'priority' => $p->priority,
             ]),
-            'memberProjects'  => $user->projects->map(fn ($p) => [
+            'memberProjects'  => \App\Models\Project::visibleTo($user)->orderBy('name')->get(['uuid', 'name', 'status'])->map(fn ($p) => [
                 'uuid' => $p->uuid, 'name' => $p->name, 'status' => $p->status,
             ]),
             'tasks'           => $user->tasks->map(fn ($t) => [
