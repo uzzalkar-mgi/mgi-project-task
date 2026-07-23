@@ -52,7 +52,8 @@ class Project extends Model
             $w->where('lead_user_id', $user->id)
                 ->orWhere('primary_responsible_id', $user->id)
                 ->orWhere('secondary_responsible_id', $user->id)
-                ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id));
+                ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id))
+                ->orWhereHas('tasks', fn ($t) => $t->whereHas('assignees', fn ($a) => $a->where('users.id', $user->id)));
         });
     }
 
