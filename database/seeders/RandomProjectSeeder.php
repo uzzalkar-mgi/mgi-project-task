@@ -23,7 +23,7 @@ class RandomProjectSeeder extends Seeder
     private array $projectStatuses = ['active', 'active', 'active', 'on_hold', 'completed'];
     private array $taskPriorities = ['urgent', 'high', 'normal', 'low'];
     private array $taskStatuses = ['todo', 'in_progress', 'under_review', 'done', 'blocked'];
-    private array $platforms = ['web', 'android', 'both'];
+    private array $platforms = ['web', 'android', 'ios'];
 
     public function run(): void
     {

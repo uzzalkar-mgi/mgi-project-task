@@ -17,8 +17,8 @@ const COLUMNS = [
 const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
 const COL_ACCENT = { todo: 'border-t-slate-300', in_progress: 'border-t-brand-500', under_review: 'border-t-amber-500', done: 'border-t-emerald-500', blocked: 'border-t-rose-500' };
 const PRIORITY_TONE = { urgent: 'red', high: 'amber', normal: 'blue', low: 'slate' };
-const PLATFORM_LABEL = { web: 'Web', android: 'Android', both: 'Web+Android' };
-const PLATFORM_TONE = { web: 'blue', android: 'green', both: 'amber' };
+const PLATFORM_LABEL = { web: 'Web', android: 'Android', ios: 'iOS' };
+const PLATFORM_TONE = { web: 'blue', android: 'green', ios: 'amber' };
 
 function fmt(d) {
     if (!d) return '—';

@@ -101,7 +101,7 @@ export default function Create({ projects, users, parentTasks = [] }) {
                         </Field>
                         <Field label="Platform" required error={errors.platform}>
                             <select className={inputCls} value={data.platform} onChange={(e) => setData('platform', e.target.value)}>
-                                {[['web', 'Web'], ['android', 'Android'], ['both', 'Both (Web & Android)']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                                {[['web', 'Web'], ['android', 'Android'], ['ios', 'iOS']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                             </select>
                         </Field>
                         <Field label="Estimated Hours" error={errors.estimated_hours}>

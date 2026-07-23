@@ -3,8 +3,8 @@ import { Head } from '@inertiajs/react';
 const TASK_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' };
 const HERO_STATUS = { todo: 'bg-emerald-500', in_progress: 'bg-sky-500', under_review: 'bg-amber-500', done: 'bg-green-600', blocked: 'bg-rose-500' };
 const HERO_PRIORITY = { urgent: 'bg-red-600', high: 'bg-rose-500', normal: 'bg-blue-500', low: 'bg-slate-500' };
-const HERO_PLATFORM = { web: 'bg-violet-500', android: 'bg-teal-500', both: 'bg-fuchsia-500' };
-const PLATFORM_LABEL = { web: 'Web', android: 'Android', both: 'Web + Android' };
+const HERO_PLATFORM = { web: 'bg-violet-500', android: 'bg-teal-500', ios: 'bg-fuchsia-500' };
+const PLATFORM_LABEL = { web: 'Web', android: 'Android', ios: 'iOS' };
 
 function fmt(d) {
     if (!d) return '—';
