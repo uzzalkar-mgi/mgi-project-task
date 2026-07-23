@@ -125,14 +125,14 @@ export default function AuthenticatedLayout({ header, children }) {
                 <Brand />
 
                 {/* Global search */}
-                <div className="mx-3 hidden max-w-2xl flex-1 md:block lg:mx-8">
+                <div className="ml-auto mr-3 hidden w-full max-w-[460px] md:block">
                     <SearchBar />
                 </div>
 
                 {/* Outside-click backdrop for panels */}
                 {panel && <div className="fixed inset-0 z-30" onClick={close} />}
 
-                <div className="relative z-40 ml-auto flex items-center gap-1">
+                <div className="relative z-40 flex items-center gap-1 md:ml-0 ml-auto">
                     {/* Notifications */}
                     <div className="relative">
                         <button onClick={openBell} className="relative rounded p-2 hover:bg-white/10">
