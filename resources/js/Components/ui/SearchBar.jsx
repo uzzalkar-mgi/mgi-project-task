@@ -43,15 +43,15 @@ export function SearchBar() {
 
     return (
         <div ref={boxRef} className="relative w-full">
-            <div className="flex items-center gap-2.5 rounded-full bg-white px-4 py-2 text-slate-600 shadow-sm ring-1 ring-black/5 transition focus-within:ring-2 focus-within:ring-brand-300">
-                <svg className="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" /></svg>
+            <div className="flex items-center gap-3 rounded-full bg-white px-5 py-2.5 text-slate-600 shadow-sm ring-1 ring-black/5 transition focus-within:ring-2 focus-within:ring-brand-300">
+                <svg className="h-[18px] w-[18px] shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" /></svg>
                 <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     onFocus={() => q.trim().length >= 2 && setOpen(true)}
                     onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
                     placeholder="Search tasks, projects, people, meetings…"
-                    className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                    className="w-full bg-transparent text-[15px] text-slate-700 outline-none placeholder:text-slate-400"
                 />
                 {q && <button onClick={() => { setQ(''); setRes(EMPTY); }} className="text-lg leading-none text-slate-400 hover:text-slate-600">×</button>}
             </div>

@@ -125,7 +125,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 <Brand />
 
                 {/* Global search */}
-                <div className="mx-2 hidden max-w-md flex-1 md:block lg:mx-6">
+                <div className="mx-3 hidden max-w-2xl flex-1 md:block lg:mx-8">
                     <SearchBar />
                 </div>
 
