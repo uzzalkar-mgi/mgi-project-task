@@ -85,7 +85,9 @@ export default function Dashboard({ stats, myTasks, health, projectStatus = [] }
 
             {/* Stat cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard label="Active Projects" value={String(stats.active_projects)} hint="Visible to you" tone="blue" icon={<Icon name="projects" className="h-5 w-5" />} />
+                <Link href={route('projects.index')} className="block transition hover:-translate-y-0.5">
+                    <StatCard label="My Projects" value={String(stats.active_projects)} hint="Created & assigned" tone="blue" icon={<Icon name="projects" className="h-5 w-5" />} />
+                </Link>
                 <Link href={route('tasks.index')} className="block transition hover:-translate-y-0.5">
                     <StatCard label="My Open Tasks" value={String(stats.my_tasks)} hint="Assigned to you · view all" tone="green" icon={<Icon name="tasks" className="h-5 w-5" />} />
                 </Link>

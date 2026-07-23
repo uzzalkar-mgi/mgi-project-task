@@ -25,7 +25,7 @@ class DashboardController extends Controller
         $myTasks = Task::whereHas('assignees', fn ($q) => $q->where('users.id', $user->id));
 
         $stats = [
-            'active_projects' => (clone $projectScope)->where('status', 'active')->count(),
+            'active_projects' => (clone $projectScope)->count(),
             'my_tasks'        => (clone $myTasks)->whereNotIn('status', ['done'])->count(),
             'overdue'         => (clone $myTasks)->where('due_date', '<', $today)->whereNotIn('status', ['done'])->count(),
             'completed_month' => (clone $myTasks)->where('status', 'done')->where('updated_at', '>=', $monthStart)->count(),

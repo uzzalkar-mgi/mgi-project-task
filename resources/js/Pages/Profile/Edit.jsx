@@ -144,7 +144,10 @@ export default function Edit({
         ...ledProjects.map((p) => ({ ...p, role: 'Lead', tone: 'blue' })),
         ...memberProjects.filter((m) => !ledProjects.some((l) => l.uuid === m.uuid)).map((p) => ({ ...p, role: 'Member', tone: 'slate' })),
     ];
-    const dueList = tasks.filter((t) => t.status !== 'done' && t.due_date).sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+    const todayMs = new Date().setHours(0, 0, 0, 0);
+    const dueList = tasks
+        .filter((t) => t.status !== 'done' && t.due_date && new Date(t.due_date).setHours(0, 0, 0, 0) < todayMs)
+        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
     const createdCount = createdTasks.reduce((n, g) => n + g.tasks.length, 0);
 
     const switchTab = (t) => { setTab(t); setQ(''); setAssignStatus('all'); };
