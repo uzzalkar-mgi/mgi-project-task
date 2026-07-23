@@ -342,10 +342,14 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
     const [shareCopied, setShareCopied] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
     const [tab, setTab] = useState('answers');
+    const [statusSel, setStatusSel] = useState(task.status);
+    const [savingStatus, setSavingStatus] = useState(false);
     const answered = task.answers.some((a) => a.is_accepted);
     const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/shared/tasks/${task.task_no}`;
-    const changeStatus = (status) => {
-        if (status !== task.status) router.patch(route('tasks.status', task.uuid), { status }, { preserveScroll: true });
+    const applyStatus = () => {
+        if (statusSel === task.status) return;
+        setSavingStatus(true);
+        router.patch(route('tasks.status', task.uuid), { status: statusSel }, { preserveScroll: true, onFinish: () => setSavingStatus(false) });
     };
     const uploadFile = (file) => {
         if (file) router.post(route('tasks.attachments.store', task.uuid), { file }, { forceFormData: true, preserveScroll: true, onError: (e) => alert(e.file ?? 'Upload failed.') });
@@ -435,15 +439,32 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                     {/* Status */}
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Status</label>
                     {canChangeStatus ? (
-                        <select
-                            value={task.status}
-                            onChange={(e) => changeStatus(e.target.value)}
-                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
-                        >
-                            {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                        </select>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={statusSel}
+                                onChange={(e) => setStatusSel(e.target.value)}
+                                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                            >
+                                {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                            </select>
+                            <button
+                                onClick={applyStatus}
+                                disabled={savingStatus || statusSel === task.status}
+                                className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                            >
+                                <Icon name="check" className="h-4 w-4" /> {savingStatus ? '…' : 'Update'}
+                            </button>
+                        </div>
+                    ) : task.status === 'done' ? (
+                        <div className="flex items-center gap-2">
+                            <Badge tone="green">{TASK_LABEL[task.status]}</Badge>
+                            <span className="text-xs text-slate-400">Locked — only admin can change.</span>
+                        </div>
                     ) : (
-                        <Badge tone={TASK_TONE[task.status] ?? 'slate'}>{TASK_LABEL[task.status] ?? task.status}</Badge>
+                        <div>
+                            <Badge tone={TASK_TONE[task.status] ?? 'slate'}>{TASK_LABEL[task.status] ?? task.status}</Badge>
+                            <p className="mt-1 text-xs text-slate-400">Only assignees can change the status.</p>
+                        </div>
                     )}
 
                     {/* Description */}

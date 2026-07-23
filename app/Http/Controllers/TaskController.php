@@ -389,8 +389,12 @@ class TaskController extends Controller
      */
     private function canModify(User $user, Task $task): bool
     {
-        return $user->isSuperAdmin()
-            || $user->hasPermission('tasks.assign')
+        // Once Done, only super-admin & admin can edit.
+        if ($task->status === 'done') {
+            return $this->canViewAll($user);
+        }
+
+        return $this->canViewAll($user)
             || $task->reporter_id === $user->id
             || $task->assignees->contains('id', $user->id);
     }
@@ -419,7 +423,12 @@ class TaskController extends Controller
      */
     private function canChangeStatus(User $user, Task $task): bool
     {
-        return $user->isSuperAdmin()
+        // Once Done, only super-admin & admin can change status.
+        if ($task->status === 'done') {
+            return $this->canViewAll($user);
+        }
+
+        return $this->canViewAll($user)
             || $task->assignees->contains('id', $user->id);
     }
 
@@ -427,7 +436,7 @@ class TaskController extends Controller
     public function updateStatus(Request $request, Task $task): RedirectResponse|JsonResponse
     {
         $task->loadMissing('assignees:id');
-        abort_unless($this->visibleProjects($request->user())->whereKey($task->project_id)->exists(), 403);
+        abort_unless($this->canAccessTask($request->user(), $task), 403);
         abort_unless($this->canChangeStatus($request->user(), $task), 403);
 
         $data = $request->validate([
