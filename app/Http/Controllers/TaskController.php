@@ -92,8 +92,15 @@ class TaskController extends Controller
             'can_change_status' => $this->canChangeStatus($user, $t),
         ]);
 
+        // Board filter dropdown: user's own + assigned (all visible) projects.
+        $projects = ($this->canViewAll($user) ? Project::query() : Project::query()->visibleTo($user))
+            ->orderBy('name')
+            ->get(['uuid', 'name'])
+            ->map(fn ($p) => ['uuid' => $p->uuid, 'name' => $p->name]);
+
         return Inertia::render('Tasks/Index', [
             'tasks'     => $tasks,
+            'projects'  => $projects,
             'canCreate' => $user->hasPermission('tasks.create'),
         ]);
     }

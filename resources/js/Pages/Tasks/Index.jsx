@@ -236,16 +236,14 @@ function List({ tasks, onOpenComments }) {
     );
 }
 
-export default function Index({ tasks, canCreate }) {
+export default function Index({ tasks, canCreate, projects = [] }) {
     const [view, setView] = useState('list');
     const [q, setQ] = useState('');
     const [proj, setProj] = useState('all');
     const [activeTask, setActiveTask] = useState(null); // task whose comments modal is open
 
-    // Unique projects for the board filter dropdown.
-    const projectOpts = [];
-    const seen = new Set();
-    tasks.forEach((t) => { if (t.project_uuid && !seen.has(t.project_uuid)) { seen.add(t.project_uuid); projectOpts.push({ uuid: t.project_uuid, name: t.project }); } });
+    // Board filter dropdown = user's own + assigned projects (from controller).
+    const projectOpts = projects;
 
     let shown = tasks.filter((t) => `${t.title} ${t.project} ${t.assignees.join(' ')}`.toLowerCase().includes(q.toLowerCase()));
     if (view === 'board' && proj !== 'all') shown = shown.filter((t) => t.project_uuid === proj);
