@@ -27,13 +27,9 @@ class TaskController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $projectIds = $this->visibleProjects($user)->pluck('id');
 
-        // Tasks in visible projects OR assigned to the user (even outside their projects).
-        $tasks = Task::where(function ($q) use ($projectIds, $user) {
-            $q->whereIn('project_id', $projectIds)
-                ->orWhereHas('assignees', fn ($a) => $a->where('users.id', $user->id));
-        })
+        // Only tasks assigned to the current user.
+        $tasks = Task::whereHas('assignees', fn ($a) => $a->where('users.id', $user->id))
             ->with(['project:id,uuid,name', 'assignees:id,name'])
             ->withCount('attachments', 'comments')
             ->orderByRaw('due_date is null, due_date asc')
