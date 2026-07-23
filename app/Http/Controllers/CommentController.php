@@ -22,10 +22,12 @@ class CommentController extends Controller
         abort_unless(Project::query()->visibleTo($user)->whereKey($task->project_id)->exists(), 403);
 
         $data = $request->validate([
-            'body'      => ['required', 'string', 'max:20000'],
-            'parent_id' => ['nullable', 'exists:comments,id'],
-            'files'     => ['array', 'max:5'],
-            'files.*'   => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
+            'body'         => ['required', 'string', 'max:20000'],
+            'parent_id'    => ['nullable', 'exists:comments,id'],
+            'files'        => ['array', 'max:5'],
+            'files.*'      => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
+            'mention_ids'  => ['array'],
+            'mention_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
         // A reply must belong to the same task.
@@ -54,6 +56,23 @@ class CommentController extends Controller
             ]);
             $comment->attachments()->attach($attachment->id);
         }
+
+        // @mentions — link + notify (skip self).
+        $mentionIds = collect($data['mention_ids'] ?? [])->unique()->reject(fn ($id) => (int) $id === $user->id)->values();
+        if ($mentionIds->isNotEmpty()) {
+            $comment->mentions()->sync($mentionIds->all());
+            foreach ($mentionIds as $mid) {
+                \App\Models\AppNotification::create([
+                    'user_id' => $mid,
+                    'type'    => 'mention',
+                    'message' => "{$user->name} mentioned you in a comment on \"{$task->title}\"",
+                    'data'    => ['task_uuid' => $task->uuid, 'link' => '/tasks/'.$task->uuid],
+                    'is_read' => false,
+                ]);
+            }
+        }
+
+        \App\Models\Activity::record($task, 'commented', 'added a comment');
 
         if ($request->wantsJson()) {
             // Return the refreshed tree so the caller needn't fire a second request.

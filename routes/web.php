@@ -9,11 +9,13 @@ use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\MyWorkController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\UserController;
@@ -34,6 +36,13 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::get('/shared/tasks/{task:task_no}', [TaskController::class, 'publicShow'])->name('tasks.public');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/search', [SearchController::class, 'index'])->name('search');
+
+    // My Work (personal cross-project view) + saved filters.
+    Route::get('/my-work', [MyWorkController::class, 'index'])->name('mywork.index');
+    Route::post('/my-work/filters', [MyWorkController::class, 'storeFilter'])->name('mywork.filters.store');
+    Route::delete('/my-work/filters/{filter}', [MyWorkController::class, 'destroyFilter'])->name('mywork.filters.destroy');
+
     Route::get('/projects', [ProjectController::class, 'index'])->middleware('perm:projects.menu')->name('projects.index');
     Route::get('/projects/create', [ProjectController::class, 'create'])->middleware('perm:projects.menu')->name('projects.create');
     Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
@@ -50,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tasks/{task}/comments', [TaskController::class, 'comments'])->name('tasks.comments');
     Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.status');
     Route::patch('/tasks/{task}/watchers', [TaskController::class, 'updateWatchers'])->name('tasks.watchers');
+    Route::patch('/tasks/{task}/dates', [TaskController::class, 'updateDates'])->name('tasks.dates');
     Route::post('/tasks/{task}/attachments', [TaskController::class, 'uploadAttachment'])->name('tasks.attachments.store');
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');

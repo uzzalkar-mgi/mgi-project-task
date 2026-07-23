@@ -79,10 +79,10 @@ function copyText(text) {
     });
 }
 
-function CommentForm({ taskUuid, parentId = null, onDone, compact }) {
+function CommentForm({ taskUuid, parentId = null, onDone, compact, mentionUsers = [] }) {
     const fileRef = useRef();
     const [edKey, setEdKey] = useState(0);
-    const { data, setData, post, processing, reset, errors } = useForm({ body: '', parent_id: parentId, files: [] });
+    const { data, setData, post, processing, reset, errors } = useForm({ body: '', parent_id: parentId, files: [], mention_ids: [] });
 
     const submit = (e) => {
         e.preventDefault();
@@ -96,7 +96,7 @@ function CommentForm({ taskUuid, parentId = null, onDone, compact }) {
 
     return (
         <form onSubmit={submit} className="mt-2">
-            <RichTextEditor key={edKey} value={data.body} onChange={(html) => setData('body', html)} placeholder={parentId ? 'Write a reply…' : 'Write a comment…'} />
+            <RichTextEditor key={edKey} value={data.body} onChange={(html) => setData('body', html)} placeholder={parentId ? 'Write a reply…' : 'Write a comment…'} mentionUsers={mentionUsers} onMentions={(ids) => setData('mention_ids', ids)} />
             {errors.body && <p className="mt-1 text-sm text-rose-500">{errors.body}</p>}
             {data.files.length > 0 && (
                 <p className="mt-1 text-xs text-slate-500">{data.files.length} file(s) attached</p>
@@ -115,7 +115,7 @@ function CommentForm({ taskUuid, parentId = null, onDone, compact }) {
     );
 }
 
-function CommentItem({ c, taskUuid, depth = 0 }) {
+function CommentItem({ c, taskUuid, depth = 0, mentionUsers = [] }) {
     const [replying, setReplying] = useState(false);
 
     return (
@@ -132,11 +132,11 @@ function CommentItem({ c, taskUuid, depth = 0 }) {
                     <button onClick={() => setReplying((v) => !v)} className="text-xs font-medium text-brand-600 hover:underline">Reply</button>
                     {c.can_delete && <button onClick={() => { if (confirm('Delete this comment?')) router.delete(route('comments.destroy', c.id), { preserveScroll: true }); }} className="text-xs font-medium text-rose-500 hover:underline">Delete</button>}
                 </div>
-                {replying && <CommentForm taskUuid={taskUuid} parentId={c.id} compact onDone={() => setReplying(false)} />}
+                {replying && <CommentForm taskUuid={taskUuid} parentId={c.id} compact onDone={() => setReplying(false)} mentionUsers={mentionUsers} />}
 
                 {c.replies?.length > 0 && (
                     <div className="mt-2 border-l-2 border-slate-100 pl-3">
-                        {c.replies.map((r) => <CommentItem key={r.id} c={r} taskUuid={taskUuid} depth={depth + 1} />)}
+                        {c.replies.map((r) => <CommentItem key={r.id} c={r} taskUuid={taskUuid} depth={depth + 1} mentionUsers={mentionUsers} />)}
                     </div>
                 )}
             </div>
@@ -144,17 +144,17 @@ function CommentItem({ c, taskUuid, depth = 0 }) {
     );
 }
 
-function AnswerForm({ taskUuid }) {
+function AnswerForm({ taskUuid, mentionUsers = [] }) {
     const fileRef = useRef();
     const [edKey, setEdKey] = useState(0);
-    const { data, setData, post, processing, reset, errors } = useForm({ body: '', files: [] });
+    const { data, setData, post, processing, reset, errors } = useForm({ body: '', files: [], mention_ids: [] });
     const submit = (e) => {
         e.preventDefault();
         post(route('answers.store', taskUuid), { forceFormData: true, preserveScroll: true, onSuccess: () => { reset(); setEdKey((k) => k + 1); } });
     };
     return (
         <form onSubmit={submit} className="rounded-xl border border-brand-100 bg-brand-50/40 p-3">
-            <RichTextEditor key={edKey} value={data.body} onChange={(html) => setData('body', html)} placeholder="Write your answer / deliverable…" />
+            <RichTextEditor key={edKey} value={data.body} onChange={(html) => setData('body', html)} placeholder="Write your answer / deliverable…" mentionUsers={mentionUsers} onMentions={(ids) => setData('mention_ids', ids)} />
             {errors.body && <p className="mt-1 text-sm text-rose-500">{errors.body}</p>}
             {data.files.length > 0 && <p className="mt-1 text-xs text-slate-500">{data.files.length} file(s) attached</p>}
             <div className="mt-2 flex items-center gap-2">
@@ -274,6 +274,33 @@ function WorkLogTimeline({ logs }) {
     );
 }
 
+const ACTIVITY_STYLE = {
+    created:   { dot: 'bg-emerald-500', icon: '✚' },
+    status:    { dot: 'bg-sky-500', icon: '↻' },
+    updated:   { dot: 'bg-slate-400', icon: '✎' },
+    commented: { dot: 'bg-slate-400', icon: '💬' },
+    answered:  { dot: 'bg-brand-500', icon: '✓' },
+    logged:    { dot: 'bg-indigo-500', icon: '⏱' },
+};
+
+function ActivityFeed({ items }) {
+    if (!items?.length) return <p className="py-10 text-center text-sm text-slate-400">No activity yet.</p>;
+    return (
+        <ol className="relative ml-2 border-l-2 border-slate-100">
+            {items.map((a) => {
+                const s = ACTIVITY_STYLE[a.action] ?? { dot: 'bg-slate-300', icon: '•' };
+                return (
+                    <li key={a.id} className="mb-4 ml-4">
+                        <span className={`absolute -left-[9px] flex h-4 w-4 items-center justify-center rounded-full text-[9px] text-white ${s.dot}`}>{s.icon}</span>
+                        <p className="text-sm text-slate-700"><span className="font-semibold text-slate-800">{a.user ?? 'Someone'}</span> {a.description}</p>
+                        <p className="text-xs text-slate-400">{a.at}</p>
+                    </li>
+                );
+            })}
+        </ol>
+    );
+}
+
 function AvatarStack({ names = [], tone = 'bg-brand-500' }) {
     if (!names.length) return <span className="text-sm text-slate-400">—</span>;
     return (
@@ -337,7 +364,7 @@ function WatchersEditor({ task, users }) {
     );
 }
 
-export default function Show({ task, comments, users = [], canChangeStatus, canModify, canAnswer, canAccept, canLog }) {
+export default function Show({ task, comments, users = [], mentionables = [], canChangeStatus, canModify, canAnswer, canAccept, canLog }) {
     const fileRef = useRef();
     const [shareCopied, setShareCopied] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
@@ -581,11 +608,18 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                             Discussion
                             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-600">{comments.length}</span>
                         </button>
+                        <button
+                            onClick={() => setTab('activity')}
+                            className={`flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${tab === 'activity' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg>
+                            Activity
+                        </button>
                     </div>
 
                     {/* Answers tab */}
                     <div className={`p-5 ${tab === 'answers' ? '' : 'hidden'}`}>
-                        {canAnswer && <div className="mb-4"><AnswerForm taskUuid={task.uuid} /></div>}
+                        {canAnswer && <div className="mb-4"><AnswerForm taskUuid={task.uuid} mentionUsers={mentionables} /></div>}
                         {task.answers.length === 0 ? (
                             <div className="flex flex-col items-center py-10 text-center">
                                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-500"><Icon name="check" className="h-6 w-6" /></span>
@@ -616,7 +650,7 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
 
                     {/* Discussion tab */}
                     <div className={`p-5 ${tab === 'discussion' ? '' : 'hidden'}`}>
-                        <CommentForm taskUuid={task.uuid} />
+                        <CommentForm taskUuid={task.uuid} mentionUsers={mentionables} />
                         <div className="mt-4 divide-y divide-slate-100">
                             {comments.length === 0 ? (
                                 <div className="flex flex-col items-center py-10 text-center">
@@ -624,9 +658,14 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                                     <p className="mt-3 text-sm text-slate-400">No comments yet. Start the discussion.</p>
                                 </div>
                             ) : (
-                                comments.map((c) => <CommentItem key={c.id} c={c} taskUuid={task.uuid} />)
+                                comments.map((c) => <CommentItem key={c.id} c={c} taskUuid={task.uuid} mentionUsers={mentionables} />)
                             )}
                         </div>
+                    </div>
+
+                    {/* Activity tab */}
+                    <div className={`p-5 ${tab === 'activity' ? '' : 'hidden'}`}>
+                        <ActivityFeed items={task.activity ?? []} />
                     </div>
                 </Card>
             </div>

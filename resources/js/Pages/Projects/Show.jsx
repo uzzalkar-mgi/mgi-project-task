@@ -166,6 +166,24 @@ export default function Show({ project, canEdit }) {
                     )}
                 </Card>
             </div>
+
+            {/* Activity */}
+            <Card className="mt-6 p-5">
+                <SectionTitle>Recent Activity</SectionTitle>
+                {(project.activity ?? []).length === 0 ? (
+                    <p className="text-sm text-slate-400">No activity yet.</p>
+                ) : (
+                    <ol className="relative mt-2 ml-2 border-l-2 border-slate-100">
+                        {project.activity.map((a) => (
+                            <li key={a.id} className="mb-4 ml-4">
+                                <span className="absolute -left-[7px] h-3 w-3 rounded-full bg-brand-400" />
+                                <p className="text-sm text-slate-700"><span className="font-semibold text-slate-800">{a.user ?? 'Someone'}</span> {a.description}</p>
+                                <p className="text-xs text-slate-400">{a.at}</p>
+                            </li>
+                        ))}
+                    </ol>
+                )}
+            </Card>
         </AuthenticatedLayout>
     );
 }

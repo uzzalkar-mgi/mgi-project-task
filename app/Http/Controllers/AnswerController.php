@@ -23,9 +23,11 @@ class AnswerController extends Controller
         abort_unless($user->isSuperAdmin() || $task->assignees->contains('id', $user->id), 403);
 
         $data = $request->validate([
-            'body'    => ['required', 'string', 'max:20000'],
-            'files'   => ['array', 'max:5'],
-            'files.*' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
+            'body'          => ['required', 'string', 'max:20000'],
+            'files'         => ['array', 'max:5'],
+            'files.*'       => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],
+            'mention_ids'   => ['array'],
+            'mention_ids.*' => ['integer', 'exists:users,id'],
         ]);
 
         $answer = Answer::create([
@@ -47,6 +49,18 @@ class AnswerController extends Controller
             ]);
             $answer->attachments()->attach($attachment->id);
         }
+
+        // @mentions — notify (skip self).
+        collect($data['mention_ids'] ?? [])->unique()->reject(fn ($id) => (int) $id === $user->id)
+            ->each(fn ($mid) => \App\Models\AppNotification::create([
+                'user_id' => $mid,
+                'type'    => 'mention',
+                'message' => "{$user->name} mentioned you in an answer on \"{$task->title}\"",
+                'data'    => ['task_uuid' => $task->uuid, 'link' => '/tasks/'.$task->uuid],
+                'is_read' => false,
+            ]));
+
+        \App\Models\Activity::record($task, 'answered', 'posted an answer');
 
         return back()->with('status', 'Answer posted.');
     }

@@ -1,113 +1,171 @@
 import { Card, PageHeader, Badge } from '@/Components/ui/Primitives';
-import { Icon } from '@/Components/ui/Icon';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { useMemo, useRef, useState } from 'react';
 
-const STATUS_BAR = {
-    todo: 'bg-slate-400',
-    in_progress: 'bg-brand-500',
-    under_review: 'bg-amber-500',
-    done: 'bg-emerald-500',
-    blocked: 'bg-rose-500',
-};
-const STATUS_TONE = { active: 'green', on_hold: 'amber', completed: 'blue', cancelled: 'red' };
+const DAY_W = 26;
+const ROW_H = 38;
+const HEAD_H = 44;
+const LABEL_W = 240;
 
-const DAY = 86400000;
-const d = (s) => (s ? new Date(s + 'T00:00:00').getTime() : null);
-const fmt = (ts) => new Date(ts).toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+const STATUS_BAR = { todo: 'bg-slate-400', in_progress: 'bg-sky-500', under_review: 'bg-amber-500', done: 'bg-emerald-500', blocked: 'bg-rose-500' };
+const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
 
-function ProjectTimeline({ p }) {
-    // Date range for THIS project only.
-    const dates = [];
-    if (p.start_date) dates.push(d(p.start_date));
-    if (p.end_date) dates.push(d(p.end_date));
-    p.tasks.forEach((t) => { if (t.start_date) dates.push(d(t.start_date)); if (t.due_date) dates.push(d(t.due_date)); });
-    p.milestones.forEach((m) => { if (m.date) dates.push(d(m.date)); });
+const MS = 864e5;
+const parse = (d) => (d ? Date.parse(d + 'T00:00:00Z') : null);
+const addDays = (ms, n) => new Date(ms + n * MS).toISOString().slice(0, 10);
 
-    const min = dates.length ? Math.min(...dates) : Date.now();
-    const max = dates.length ? Math.max(...dates) : Date.now() + 30 * DAY;
-    const span = Math.max(max - min, DAY);
-    const pct = (ts) => ((ts - min) / span) * 100;
-    const today = Date.now();
+export default function Index({ projects }) {
+    const [drag, setDrag] = useState(null); // { id, deltaDays }
+    const dragRef = useRef(null);
 
-    const ticks = [];
-    const cur = new Date(min); cur.setDate(1);
-    while (cur.getTime() <= max) {
-        ticks.push({ ts: cur.getTime(), label: cur.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) });
-        cur.setMonth(cur.getMonth() + 1);
+    const { rows, min, days, taskPos } = useMemo(() => {
+        let lo = Infinity, hi = -Infinity;
+        const flat = [];
+        projects.forEach((p) => {
+            flat.push({ type: 'project', key: 'p' + p.uuid, name: p.name, status: p.status });
+            p.tasks.forEach((t) => {
+                const s = parse(t.start_date) ?? parse(t.due_date);
+                const e = parse(t.due_date) ?? parse(t.start_date);
+                if (s != null) lo = Math.min(lo, s);
+                if (e != null) hi = Math.max(hi, e);
+                flat.push({ type: 'task', key: 't' + t.uuid, t, s, e });
+            });
+        });
+        if (!isFinite(lo)) { lo = Date.now(); hi = lo + 14 * MS; }
+        lo -= 3 * MS; hi += 3 * MS;
+        const min = lo;
+        const days = Math.max(1, Math.round((hi - lo) / MS) + 1);
+        const taskPos = {};
+        flat.forEach((r, i) => {
+            if (r.type === 'task' && r.s != null && r.e != null) {
+                const o = Math.round((r.s - min) / MS);
+                const dur = Math.max(1, Math.round((r.e - r.s) / MS) + 1);
+                taskPos[r.t.id] = { x0: o * DAY_W, x1: (o + dur) * DAY_W, y: i * ROW_H + ROW_H / 2, o, dur };
+            }
+        });
+        return { rows: flat, min, days, taskPos };
+    }, [projects]);
+
+    const depEdges = useMemo(() => {
+        const edges = [];
+        projects.forEach((p) => (p.deps ?? []).forEach((d) => {
+            const a = taskPos[d.from]; const b = taskPos[d.to];
+            if (a && b) edges.push({ a, b, key: `${d.from}-${d.to}` });
+        }));
+        return edges;
+    }, [projects, taskPos]);
+
+    const width = days * DAY_W;
+
+    const months = [];
+    for (let i = 0; i < days; i++) {
+        const d = new Date(min + i * MS);
+        if (i === 0 || d.getUTCDate() === 1) months.push({ i, label: d.toLocaleDateString(undefined, { month: 'short', year: '2-digit', timeZone: 'UTC' }) });
     }
+    const todayOff = Math.round((Date.now() - min) / MS);
+
+    const findUuid = (id) => projects.flatMap((p) => p.tasks).find((t) => t.id === id)?.uuid;
+
+    const onMove = (e) => { const d = dragRef.current; if (d) setDrag({ id: d.id, deltaDays: Math.round((e.clientX - d.startX) / DAY_W) }); };
+    const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        const d = dragRef.current; dragRef.current = null;
+        setDrag((cur) => {
+            if (d && cur && cur.deltaDays !== 0) {
+                const uuid = findUuid(d.id);
+                if (uuid) router.patch(route('tasks.dates', uuid), { start_date: addDays(min, d.o + cur.deltaDays), due_date: addDays(min, d.o + cur.deltaDays + d.dur - 1) }, { preserveScroll: true });
+            }
+            return null;
+        });
+    };
+    const onDown = (e, r) => {
+        if (!r.t.can_move) return;
+        e.preventDefault();
+        dragRef.current = { id: r.t.id, startX: e.clientX, o: taskPos[r.t.id].o, dur: taskPos[r.t.id].dur };
+        setDrag({ id: r.t.id, deltaDays: 0 });
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    };
 
     return (
-        <Card className="p-5">
-            <div className="mb-3 flex items-center gap-2">
-                <Icon name="projects" className="h-4 w-4 text-slate-500" />
-                <Link href={route('projects.show', p.uuid)} className="text-sm font-semibold text-slate-900 hover:text-brand-700">{p.name}</Link>
-                <Badge tone={STATUS_TONE[p.status] ?? 'slate'}>{p.status}</Badge>
-                <span className="text-xs text-slate-400">{p.tasks.length} task{p.tasks.length === 1 ? '' : 's'}</span>
-            </div>
+        <AuthenticatedLayout header={<PageHeader title="Timeline" subtitle="Gantt view · drag a bar to reschedule" />}>
+            <Head title="Timeline" />
 
-            <div className="overflow-x-auto">
-                <div className="min-w-[640px]">
-                    {/* Month header */}
-                    <div className="relative mb-3 ml-48 h-5 border-b border-slate-100">
-                        {ticks.map((t) => (
-                            <span key={t.ts} className="absolute -translate-x-1/2 text-[10px] font-medium uppercase text-slate-400" style={{ left: `${pct(t.ts)}%` }}>{t.label}</span>
+            <Card className="overflow-hidden">
+                <div className="flex">
+                    {/* Label column */}
+                    <div className="shrink-0 border-r border-slate-200" style={{ width: LABEL_W }}>
+                        <div style={{ height: HEAD_H }} className="flex items-center border-b border-slate-100 px-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Project / Task</div>
+                        {rows.map((r) => (
+                            <div key={r.key} style={{ height: ROW_H }} className={`flex items-center border-b border-slate-50 px-4 ${r.type === 'project' ? 'bg-slate-50' : ''}`}>
+                                {r.type === 'project'
+                                    ? <span className="truncate text-sm font-bold text-slate-800">{r.name}</span>
+                                    : <span className="truncate text-sm text-slate-600" title={r.t.title}>{r.t.title}</span>}
+                            </div>
                         ))}
                     </div>
 
-                    {p.tasks.length === 0 && <p className="ml-48 text-xs text-slate-400">No tasks.</p>}
-
-                    {p.tasks.map((t) => {
-                        const s = d(t.start_date) ?? d(t.due_date) ?? min;
-                        const e = d(t.due_date) ?? s;
-                        const width = Math.max(((e - s) / span) * 100, 1.5);
-                        return (
-                            <div key={t.uuid} className="flex items-center gap-2 py-1">
-                                <Link href={route('tasks.show', t.uuid)} className="w-48 shrink-0 truncate pr-2 text-xs text-slate-600 hover:text-brand-700" title={t.title}>{t.title}</Link>
-                                <div className="relative h-5 flex-1 rounded bg-slate-50">
-                                    {today >= min && today <= max && <span className="absolute top-0 h-full w-px bg-rose-300" style={{ left: `${pct(today)}%` }} />}
-                                    <span
-                                        className={`absolute top-0.5 flex h-4 items-center rounded px-1.5 text-[10px] font-medium text-white ${STATUS_BAR[t.status] ?? 'bg-slate-400'}`}
-                                        style={{ left: `${pct(s)}%`, width: `${width}%` }}
-                                        title={`${fmt(s)} → ${fmt(e)}`}
-                                    >
-                                        <span className="truncate">{fmt(e)}</span>
-                                    </span>
-                                </div>
+                    {/* Timeline */}
+                    <div className="flex-1 overflow-x-auto">
+                        <div style={{ width }}>
+                            <div className="relative border-b border-slate-100" style={{ height: HEAD_H }}>
+                                {months.map((m) => <div key={m.i} className="absolute top-1 text-[11px] font-semibold text-slate-500" style={{ left: m.i * DAY_W + 2 }}>{m.label}</div>)}
+                                {Array.from({ length: days }).map((_, i) => {
+                                    const d = new Date(min + i * MS);
+                                    const we = d.getUTCDay() === 0 || d.getUTCDay() === 6;
+                                    return <div key={i} className={`absolute bottom-1 text-center text-[9px] ${we ? 'text-rose-300' : 'text-slate-300'}`} style={{ left: i * DAY_W, width: DAY_W }}>{d.getUTCDate()}</div>;
+                                })}
                             </div>
-                        );
-                    })}
-                </div>
-            </div>
-        </Card>
-    );
-}
 
-export default function Index({ projects }) {
-    return (
-        <AuthenticatedLayout header={<PageHeader title="Timeline" subtitle="Project & task timeline (start → due) — per project." />}>
-            <Head title="Timeline" />
+                            <div className="relative" style={{ height: rows.length * ROW_H }}>
+                                {Array.from({ length: days }).map((_, i) => {
+                                    const d = new Date(min + i * MS);
+                                    const we = d.getUTCDay() === 0 || d.getUTCDay() === 6;
+                                    return we ? <div key={i} className="absolute top-0 bottom-0 bg-slate-50/70" style={{ left: i * DAY_W, width: DAY_W }} /> : null;
+                                })}
+                                {todayOff >= 0 && todayOff < days && <div className="absolute top-0 bottom-0 z-10 w-px bg-rose-400" style={{ left: todayOff * DAY_W + DAY_W / 2 }} />}
+                                {rows.map((r, i) => <div key={r.key} className={`absolute left-0 right-0 border-b border-slate-50 ${r.type === 'project' ? 'bg-slate-50/40' : ''}`} style={{ top: i * ROW_H, height: ROW_H }} />)}
 
-            {projects.length === 0 ? (
-                <Card className="flex flex-col items-center justify-center px-6 py-20 text-center">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Icon name="timeline" className="h-7 w-7" /></span>
-                    <h2 className="mt-4 text-lg font-semibold text-slate-900">Nothing to show</h2>
-                    <p className="mt-1 text-sm text-slate-500">No projects with dates yet.</p>
-                </Card>
-            ) : (
-                <div className="space-y-6">
-                    {projects.map((p) => <ProjectTimeline key={p.uuid} p={p} />)}
+                                <svg className="pointer-events-none absolute inset-0" width={width} height={rows.length * ROW_H}>
+                                    <defs><marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8" /></marker></defs>
+                                    {depEdges.map((e) => {
+                                        const midX = Math.max(e.a.x1 + 8, e.b.x0 - 8);
+                                        return <path key={e.key} d={`M ${e.a.x1} ${e.a.y} H ${midX} V ${e.b.y} H ${e.b.x0}`} fill="none" stroke="#94a3b8" strokeWidth="1.5" markerEnd="url(#arrow)" />;
+                                    })}
+                                </svg>
 
-                    {/* Legend */}
-                    <Card className="p-4">
-                        <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                            {Object.entries({ todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' }).map(([k, l]) => (
-                                <span key={k} className="flex items-center gap-1.5"><span className={`h-3 w-3 rounded ${STATUS_BAR[k]}`} /> {l}</span>
-                            ))}
+                                {rows.map((r, i) => {
+                                    if (r.type !== 'task') return null;
+                                    const pos = taskPos[r.t.id];
+                                    if (!pos) return null;
+                                    const isDrag = drag?.id === r.t.id;
+                                    const shift = isDrag ? drag.deltaDays * DAY_W : 0;
+                                    return (
+                                        <div
+                                            key={r.key}
+                                            onMouseDown={(e) => onDown(e, r)}
+                                            onClick={() => { if (!(drag && drag.id === r.t.id && drag.deltaDays !== 0)) router.visit(route('tasks.show', r.t.uuid)); }}
+                                            title={`${r.t.title} · ${r.t.start_date ?? '?'} → ${r.t.due_date ?? '?'}`}
+                                            className={`absolute z-20 flex items-center rounded px-2 text-[11px] font-medium text-white shadow-sm ${STATUS_BAR[r.t.status] ?? 'bg-slate-400'} ${r.t.can_move ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${isDrag ? 'opacity-80 ring-2 ring-brand-300' : ''}`}
+                                            style={{ left: pos.x0 + shift, top: i * ROW_H + 7, width: pos.x1 - pos.x0, height: ROW_H - 14 }}
+                                        >
+                                            <span className="truncate">{r.t.title}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </Card>
+                    </div>
                 </div>
-            )}
+            </Card>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                {Object.keys(STATUS_BAR).map((k) => <Badge key={k} tone={TASK_TONE[k]}>{k.replace('_', ' ')}</Badge>)}
+                <span className="flex items-center gap-1.5"><span className="h-3 w-px bg-rose-400" /> today</span>
+                <span className="text-slate-400">Arrows = dependencies · drag a bar to reschedule</span>
+            </div>
         </AuthenticatedLayout>
     );
 }

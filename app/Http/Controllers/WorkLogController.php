@@ -37,6 +37,8 @@ class WorkLogController extends Controller
             'body'      => $data['body'],
         ]);
 
+        \App\Models\Activity::record($task, 'logged', 'logged '.($data['hours'] ? $data['hours'].'h ' : '').'work for '.$data['work_date']);
+
         return back()->with('status', 'Work log added.');
     }
 

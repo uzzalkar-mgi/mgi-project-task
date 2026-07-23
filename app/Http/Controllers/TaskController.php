@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Attachment;
 use App\Models\Comment;
 use App\Models\Project;
+use App\Models\Activity;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\TaskNotifier;
@@ -28,6 +29,11 @@ class TaskController extends Controller
     private function canViewAll(User $user): bool
     {
         return $user->isSuperAdmin() || $user->hasRole('admin');
+    }
+
+    private function statusLabel(string $s): string
+    {
+        return ['todo' => 'To Do', 'in_progress' => 'In Progress', 'under_review' => 'Under Review', 'done' => 'Done', 'blocked' => 'Blocked'][$s] ?? $s;
     }
 
     /** Projects selectable in create/edit forms — all for global managers, else visible only. */
@@ -154,6 +160,7 @@ class TaskController extends Controller
         $task->watchers()->sync($data['watcher_ids'] ?? []);
 
         TaskNotifier::notify($task, 'created', $request->user());
+        Activity::record($task, 'created', 'created this task');
 
         return redirect()->route('tasks.index')->with('status', 'Task created.');
     }
@@ -233,6 +240,7 @@ class TaskController extends Controller
         if ($statusChanged) {
             TaskNotifier::notify($task, 'status', $user);
         }
+        Activity::record($task, 'updated', $statusChanged ? 'updated task (status → '.$this->statusLabel($task->status).')' : 'updated task details');
 
         return redirect()->route('tasks.show', $task->uuid)->with('status', 'Task updated.');
     }
@@ -307,6 +315,13 @@ class TaskController extends Controller
             'users'    => $this->canModify($user, $task)
                 ? User::active()->orderBy('name')->get(['id', 'name', 'employee_id'])
                 : [],
+            'mentionables' => User::active()->orderBy('name')->get(['id', 'name']),
+            'activity' => Activity::where('subject_type', Task::class)->where('subject_id', $task->id)
+                ->with('user:id,name')->latest()->limit(50)->get()
+                ->map(fn ($a) => [
+                    'id' => $a->id, 'action' => $a->action, 'description' => $a->description,
+                    'user' => $a->user?->name, 'at' => $a->created_at?->diffForHumans(),
+                ]),
             'canChangeStatus' => $this->canChangeStatus($user, $task),
             'canModify' => $this->canModify($user, $task),
             'canAnswer' => $this->canAnswer($user, $task),
@@ -461,6 +476,7 @@ class TaskController extends Controller
 
         if ($changed) {
             TaskNotifier::notify($task, 'status', $request->user());
+            Activity::record($task, 'status', 'changed status to '.($this->statusLabel($task->status)));
         }
 
         if ($request->wantsJson()) {
@@ -468,6 +484,28 @@ class TaskController extends Controller
         }
 
         return back()->with('status', 'Task status updated.');
+    }
+
+    /** Reschedule a task from the Gantt (drag). Keeps it simple: start + due. */
+    public function updateDates(Request $request, Task $task): RedirectResponse|JsonResponse
+    {
+        $user = $request->user();
+        $task->loadMissing('assignees:id');
+        abort_unless($this->canAccessTask($user, $task) && $this->canModify($user, $task), 403);
+
+        $data = $request->validate([
+            'start_date' => ['required', 'date'],
+            'due_date'   => ['required', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        $task->update(['start_date' => $data['start_date'], 'due_date' => $data['due_date']]);
+        Activity::record($task, 'updated', 'rescheduled via timeline');
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back()->with('status', 'Task rescheduled.');
     }
 
     /** Inline update of tagged watchers from the task view page. */

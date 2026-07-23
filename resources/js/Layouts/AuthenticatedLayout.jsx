@@ -1,4 +1,5 @@
 import { Icon } from '@/Components/ui/Icon';
+import { SearchBar } from '@/Components/ui/SearchBar';
 import { Toast } from '@/Components/ui/Toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { MENU, hrefFor, isActive } from '@/menu';
@@ -122,6 +123,11 @@ export default function AuthenticatedLayout({ header, children }) {
                 </button>
 
                 <Brand />
+
+                {/* Global search */}
+                <div className="mx-2 hidden max-w-md flex-1 md:block lg:mx-6">
+                    <SearchBar />
+                </div>
 
                 {/* Outside-click backdrop for panels */}
                 {panel && <div className="fixed inset-0 z-30" onClick={close} />}

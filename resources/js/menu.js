@@ -3,6 +3,7 @@
 // Items are filtered by the signed-in user's permissions (super-admin sees all).
 export const MENU = [
     { label: 'Dashboard', route: 'dashboard', match: 'dashboard', icon: 'dashboard', permission: 'dashboard.menu' },
+    { label: 'My Work', route: 'mywork.index', match: 'mywork.*', icon: 'tasks', permission: 'dashboard.menu' },
     { label: 'Projects', route: 'projects.index', match: 'projects.*', icon: 'projects', permission: 'projects.menu' },
     { label: 'Tasks', route: 'tasks.index', match: 'tasks.*', icon: 'tasks', permission: 'tasks.menu' },
     { label: 'Timeline', route: 'timeline.index', match: 'timeline.*', icon: 'timeline', permission: 'timeline.menu' },

@@ -92,6 +92,8 @@ class ProjectController extends Controller
         $project->members()->sync(collect($data['member_ids'] ?? [])->mapWithKeys(fn ($id) => [$id => ['role_in_project' => 'member']]));
         $project->tags()->sync($this->resolveTagIds($data['tags'] ?? []));
 
+        \App\Models\Activity::record($project, 'created', 'created this project');
+
         return redirect()->route('projects.index')->with('status', 'Project created.');
     }
 
@@ -161,6 +163,8 @@ class ProjectController extends Controller
         $project->members()->sync(collect($data['member_ids'] ?? [])->mapWithKeys(fn ($id) => [$id => ['role_in_project' => 'member']]));
         $project->tags()->sync($this->resolveTagIds($data['tags'] ?? []));
 
+        \App\Models\Activity::record($project, 'updated', 'updated the project');
+
         return redirect()->route('projects.show', $project->uuid)->with('status', 'Project updated.');
     }
 
@@ -203,6 +207,12 @@ class ProjectController extends Controller
                 ]),
             ],
             'canEdit' => $request->user()->hasPermission('projects.create'),
+            'activity' => \App\Models\Activity::where('project_id', $project->id)
+                ->with('user:id,name')->latest()->limit(50)->get()
+                ->map(fn ($a) => [
+                    'id' => $a->id, 'action' => $a->action, 'description' => $a->description,
+                    'user' => $a->user?->name, 'at' => $a->created_at?->diffForHumans(),
+                ]),
         ]);
     }
 }

@@ -33,6 +33,7 @@ input:where(:not([type])) {
 .rich ol { @apply my-1.5 list-decimal pl-5; }
 .rich blockquote { @apply my-2 border-l-4 border-brand-200 pl-3 italic text-slate-600; }
 .rich a { @apply text-brand-600 underline; }
+.rich .mention, span.mention { @apply rounded bg-brand-50 px-1 font-medium text-brand-700; }
 
 /* Thin scrollbar for sidebars / panels */
 .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
