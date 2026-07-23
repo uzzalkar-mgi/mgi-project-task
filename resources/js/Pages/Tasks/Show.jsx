@@ -81,6 +81,7 @@ function copyText(text) {
 
 function CommentForm({ taskUuid, parentId = null, onDone, compact }) {
     const fileRef = useRef();
+    const [edKey, setEdKey] = useState(0);
     const { data, setData, post, processing, reset, errors } = useForm({ body: '', parent_id: parentId, files: [] });
 
     const submit = (e) => {
@@ -89,13 +90,13 @@ function CommentForm({ taskUuid, parentId = null, onDone, compact }) {
         post(route('comments.store', taskUuid), {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => { reset(); onDone?.(); },
+            onSuccess: () => { reset(); setEdKey((k) => k + 1); onDone?.(); },
         });
     };
 
     return (
         <form onSubmit={submit} className="mt-2">
-            <RichTextEditor value={data.body} onChange={(html) => setData('body', html)} placeholder={parentId ? 'Write a reply…' : 'Write a comment…'} />
+            <RichTextEditor key={edKey} value={data.body} onChange={(html) => setData('body', html)} placeholder={parentId ? 'Write a reply…' : 'Write a comment…'} />
             {errors.body && <p className="mt-1 text-sm text-rose-500">{errors.body}</p>}
             {data.files.length > 0 && (
                 <p className="mt-1 text-xs text-slate-500">{data.files.length} file(s) attached</p>
@@ -145,14 +146,15 @@ function CommentItem({ c, taskUuid, depth = 0 }) {
 
 function AnswerForm({ taskUuid }) {
     const fileRef = useRef();
+    const [edKey, setEdKey] = useState(0);
     const { data, setData, post, processing, reset, errors } = useForm({ body: '', files: [] });
     const submit = (e) => {
         e.preventDefault();
-        post(route('answers.store', taskUuid), { forceFormData: true, preserveScroll: true, onSuccess: () => reset() });
+        post(route('answers.store', taskUuid), { forceFormData: true, preserveScroll: true, onSuccess: () => { reset(); setEdKey((k) => k + 1); } });
     };
     return (
         <form onSubmit={submit} className="rounded-xl border border-brand-100 bg-brand-50/40 p-3">
-            <RichTextEditor value={data.body} onChange={(html) => setData('body', html)} placeholder="Write your answer / deliverable…" />
+            <RichTextEditor key={edKey} value={data.body} onChange={(html) => setData('body', html)} placeholder="Write your answer / deliverable…" />
             {errors.body && <p className="mt-1 text-sm text-rose-500">{errors.body}</p>}
             {data.files.length > 0 && <p className="mt-1 text-xs text-slate-500">{data.files.length} file(s) attached</p>}
             <div className="mt-2 flex items-center gap-2">
@@ -199,11 +201,12 @@ function todayStr() {
 }
 
 function WorkLogForm({ taskUuid }) {
+    const [edKey, setEdKey] = useState(0);
     const { data, setData, post, processing, reset, errors } = useForm({ work_date: todayStr(), hours: '', body: '' });
     const submit = (e) => {
         e.preventDefault();
         if (richEmpty(data.body)) return;
-        post(route('worklogs.store', taskUuid), { preserveScroll: true, onSuccess: () => reset('body', 'hours') });
+        post(route('worklogs.store', taskUuid), { preserveScroll: true, onSuccess: () => { reset('body', 'hours'); setEdKey((k) => k + 1); } });
     };
     return (
         <form onSubmit={submit} className="rounded-xl border border-brand-100 bg-brand-50/40 p-3">
@@ -218,7 +221,7 @@ function WorkLogForm({ taskUuid }) {
                 </div>
             </div>
             {errors.work_date && <p className="mb-1 text-sm text-rose-500">{errors.work_date}</p>}
-            <RichTextEditor value={data.body} onChange={(html) => setData('body', html)} placeholder="What did you work on today…" />
+            <RichTextEditor key={edKey} value={data.body} onChange={(html) => setData('body', html)} placeholder="What did you work on today…" />
             <div className="mt-2">
                 <button type="submit" disabled={processing || richEmpty(data.body)} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
                     <Icon name="plus" className="h-4 w-4" /> Add Entry
