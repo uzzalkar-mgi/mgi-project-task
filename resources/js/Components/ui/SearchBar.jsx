@@ -43,7 +43,7 @@ export function SearchBar() {
 
     return (
         <div ref={boxRef} className="relative w-full">
-            <div className="flex items-center gap-3 rounded-full bg-white px-5 py-2.5 text-slate-600 shadow-sm ring-1 ring-black/5 transition focus-within:ring-2 focus-within:ring-brand-300">
+            <div className="flex items-center gap-3 rounded-full bg-white px-6 py-3 text-slate-600 shadow-sm ring-1 ring-black/5 transition focus-within:ring-2 focus-within:ring-brand-300">
                 <svg className="h-[18px] w-[18px] shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" /></svg>
                 <input
                     value={q}
