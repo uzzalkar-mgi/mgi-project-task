@@ -77,7 +77,7 @@ export default function Edit({ project, users, tags }) {
                         <Field label="Start Date" required error={errors.start_date}>
                             <input type="date" className={inputCls} value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
                         </Field>
-                        <Field label="End Date" required error={errors.end_date}>
+                        <Field label="End Date (optional)" error={errors.end_date}>
                             <input type="date" className={inputCls} value={data.end_date} onChange={(e) => setData('end_date', e.target.value)} />
                         </Field>
                         <Field label="Priority" required error={errors.priority}>
