@@ -56,6 +56,29 @@ function richEmpty(html = '') {
     return !html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 }
 
+/** Copy text — clipboard API on secure contexts, execCommand fallback for http:// (production). */
+function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+    }
+    return new Promise((resolve, reject) => {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            ok ? resolve() : reject();
+        } catch (e) {
+            reject(e);
+        }
+    });
+}
+
 function CommentForm({ taskUuid, parentId = null, onDone, compact }) {
     const fileRef = useRef();
     const { data, setData, post, processing, reset, errors } = useForm({ body: '', parent_id: parentId, files: [] });
@@ -271,7 +294,7 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    navigator.clipboard?.writeText(shareUrl).then(() => setShareCopied(true), () => {});
+                                                    copyText(shareUrl).then(() => setShareCopied(true), () => {});
                                                     setTimeout(() => setShareCopied(false), 2000);
                                                 }}
                                                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
