@@ -50,6 +50,7 @@ class Project extends Model
 
         return $query->where(function (Builder $w) use ($user) {
             $w->where('lead_user_id', $user->id)
+                ->orWhere('created_by', $user->id)
                 ->orWhere('primary_responsible_id', $user->id)
                 ->orWhere('secondary_responsible_id', $user->id)
                 ->orWhereHas('members', fn ($m) => $m->where('users.id', $user->id))
