@@ -302,23 +302,23 @@ export default function Edit({
 
                     {/* Assign Task tab */}
                     <div className={tab === 'tasks' ? '' : 'hidden'}>
-                        {/* Clickable status filters */}
-                        <div className="mb-3 flex flex-wrap gap-2">
-                            <button onClick={() => setAssignStatus('all')} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === 'all' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                                All <span className="ml-1 text-slate-400">{tasks.length}</span>
-                            </button>
-                            {STATUS_KEYS.map((s) => (
-                                <button key={s} onClick={() => setAssignStatus(s)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === s ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                                    {TASK_LABEL[s]} <span className="ml-1 text-slate-400">{statusCount(s)}</span>
-                                </button>
-                            ))}
-                        </div>
+                        <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-slate-900">
+                            {assignStatus === 'all' ? 'All Assigned Tasks' : TASK_LABEL[assignStatus]}
+                            {assignStatus !== 'all' && <Badge tone={TASK_TONE[assignStatus] ?? 'slate'}>{statusCount(assignStatus)}</Badge>}
+                        </h2>
 
-                        <div className="mb-3 flex items-center justify-between gap-2">
-                            <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
-                                {assignStatus === 'all' ? 'All Assigned Tasks' : TASK_LABEL[assignStatus]}
-                                {assignStatus !== 'all' && <Badge tone={TASK_TONE[assignStatus] ?? 'slate'}>{statusCount(assignStatus)}</Badge>}
-                            </h2>
+                        {/* Status filters + search — same row */}
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap gap-2">
+                                <button onClick={() => setAssignStatus('all')} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === 'all' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                    All <span className="ml-1 text-slate-400">{tasks.length}</span>
+                                </button>
+                                {STATUS_KEYS.map((s) => (
+                                    <button key={s} onClick={() => setAssignStatus(s)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === s ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                        {TASK_LABEL[s]} <span className="ml-1 text-slate-400">{statusCount(s)}</span>
+                                    </button>
+                                ))}
+                            </div>
                             <SearchInput value={q} onChange={setQ} placeholder="Search assigned tasks…" />
                         </div>
                         {(() => {
