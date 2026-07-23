@@ -42,7 +42,8 @@
       "Bash(grep -n 'visibleProjects\\($user\\)->whereKey\\($task->project_id\\)->exists\\(\\)' app/Http/Controllers/TaskController.php)",
       "Bash(grep -n 'visibleProjects\\($request->user\\(\\)\\)->whereKey' app/Http/Controllers/TaskController.php)",
       "Bash(grep -n 'whereKey\\($data\\\\['\\\\''project_id'\\\\''\\\\]\\)' app/Http/Controllers/TaskController.php)",
-      "Bash(php -l app/Http/Controllers/TaskController.php)"
+      "Bash(php -l app/Http/Controllers/TaskController.php)",
+      "Bash(Select-Object -First 12)"
     ],
     "additionalDirectories": [
       "D:\\laragon\\www\\mgi-project-task\\storage\\framework\\views"

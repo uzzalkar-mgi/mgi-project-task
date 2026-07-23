@@ -24,10 +24,10 @@ class TaskController extends Controller
         return Project::query()->visibleTo($user)->orderBy('name');
     }
 
-    /** Managers/admins/super can view & edit every task regardless of project membership. */
+    /** Only super-admin & admin role can view & edit every task regardless of project. */
     private function canViewAll(User $user): bool
     {
-        return $user->isSuperAdmin() || $user->hasPermission('tasks.assign');
+        return $user->isSuperAdmin() || $user->hasRole('admin');
     }
 
     /** Projects selectable in create/edit forms — all for global managers, else visible only. */
