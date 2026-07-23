@@ -135,6 +135,7 @@ export default function Edit({
 
     const [tab, setTab] = useState('personal');
     const [q, setQ] = useState('');
+    const [assignStatus, setAssignStatus] = useState('all');
     const term = q.trim().toLowerCase();
     const match = (...vals) => !term || vals.filter(Boolean).some((v) => String(v).toLowerCase().includes(term));
 
@@ -146,7 +147,9 @@ export default function Edit({
     const dueList = tasks.filter((t) => t.status !== 'done' && t.due_date).sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
     const createdCount = createdTasks.reduce((n, g) => n + g.tasks.length, 0);
 
-    const switchTab = (t) => { setTab(t); setQ(''); };
+    const switchTab = (t) => { setTab(t); setQ(''); setAssignStatus('all'); };
+    const STATUS_KEYS = ['todo', 'in_progress', 'under_review', 'done', 'blocked'];
+    const statusCount = (s) => tasks.filter((t) => t.status === s).length;
     const today = new Date().setHours(0, 0, 0, 0);
 
     const tabs = [
@@ -299,14 +302,31 @@ export default function Edit({
 
                     {/* Assign Task tab */}
                     <div className={tab === 'tasks' ? '' : 'hidden'}>
+                        {/* Clickable status filters */}
+                        <div className="mb-3 flex flex-wrap gap-2">
+                            <button onClick={() => setAssignStatus('all')} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === 'all' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                All <span className="ml-1 text-slate-400">{tasks.length}</span>
+                            </button>
+                            {STATUS_KEYS.map((s) => (
+                                <button key={s} onClick={() => setAssignStatus(s)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === s ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                    {TASK_LABEL[s]} <span className="ml-1 text-slate-400">{statusCount(s)}</span>
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="mb-3 flex items-center justify-between gap-2">
-                            <SectionTitle>Assigned Tasks ({tasks.length})</SectionTitle>
+                            <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
+                                {assignStatus === 'all' ? 'All Assigned Tasks' : TASK_LABEL[assignStatus]}
+                                {assignStatus !== 'all' && <Badge tone={TASK_TONE[assignStatus] ?? 'slate'}>{statusCount(assignStatus)}</Badge>}
+                            </h2>
                             <SearchInput value={q} onChange={setQ} placeholder="Search assigned tasks…" />
                         </div>
                         {(() => {
-                            const rows = tasks.filter((t) => match(t.title, t.project, t.status, t.created_by));
+                            const rows = tasks
+                                .filter((t) => assignStatus === 'all' || t.status === assignStatus)
+                                .filter((t) => match(t.title, t.project, t.status, t.created_by));
                             if (tasks.length === 0) return <p className="text-sm text-slate-400">No tasks assigned.</p>;
-                            if (rows.length === 0) return <p className="text-sm text-slate-400">No tasks match “{q}”.</p>;
+                            if (rows.length === 0) return <p className="text-sm text-slate-400">No tasks match this filter.</p>;
                             return (
                                 <div className="max-h-[420px] overflow-y-auto overflow-x-auto">
                                     <ul className="min-w-[500px] divide-y divide-slate-100">
