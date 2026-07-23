@@ -24,12 +24,34 @@ class TaskController extends Controller
         return Project::query()->visibleTo($user)->orderBy('name');
     }
 
+    /** Managers/admins/super can view & edit every task regardless of project membership. */
+    private function canViewAll(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->hasPermission('tasks.assign');
+    }
+
+    /** Projects selectable in create/edit forms — all for global managers, else visible only. */
+    private function formProjects(User $user)
+    {
+        return $this->canViewAll($user)
+            ? Project::query()->orderBy('name')
+            : $this->visibleProjects($user);
+    }
+
+    /** Can this user access this task (project-visible OR a global task manager)? */
+    private function canAccessTask(User $user, Task $task): bool
+    {
+        return $this->canViewAll($user)
+            || $this->visibleProjects($user)->whereKey($task->project_id)->exists();
+    }
+
     public function index(Request $request): Response
     {
         $user = $request->user();
 
-        // Only tasks assigned to the current user.
-        $tasks = Task::whereHas('assignees', fn ($a) => $a->where('users.id', $user->id))
+        // Managers/admins/super see all tasks; everyone else only their assigned tasks.
+        $tasks = Task::query()
+            ->when(! $this->canViewAll($user), fn ($q) => $q->whereHas('assignees', fn ($a) => $a->where('users.id', $user->id)))
             ->with(['project:id,uuid,name', 'assignees:id,name'])
             ->withCount('attachments', 'comments')
             ->orderByRaw('due_date is null, due_date asc')
@@ -80,10 +102,10 @@ class TaskController extends Controller
     {
         $this->authorize('permission', 'tasks.create');
 
-        $projectIds = $this->visibleProjects($request->user())->pluck('id');
+        $projectIds = $this->formProjects($request->user())->pluck('id');
 
         return Inertia::render('Tasks/Create', [
-            'projects' => $this->visibleProjects($request->user())->get(['id', 'name']),
+            'projects' => $this->formProjects($request->user())->get(['id', 'name']),
             'users'    => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
             'parentTasks' => Task::whereIn('project_id', $projectIds)->orderBy('title')->get(['id', 'title', 'project_id']),
         ]);
@@ -114,7 +136,7 @@ class TaskController extends Controller
         ]);
 
         // Can only attach a task to a project the user can access.
-        abort_unless($this->visibleProjects($request->user())->whereKey($data['project_id'])->exists(), 403);
+        abort_unless($this->canViewAll($request->user()) || $this->visibleProjects($request->user())->whereKey($data['project_id'])->exists(), 403);
 
         $task = Task::create([
             ...collect($data)->except(['assignee_ids', 'watcher_ids'])->all(),
@@ -133,9 +155,9 @@ class TaskController extends Controller
     {
         $user = $request->user();
         $task->loadMissing(['assignees:id', 'watchers:id']);
-        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists() && $this->canModify($user, $task), 403);
+        abort_unless($this->canAccessTask($user, $task) && $this->canModify($user, $task), 403);
 
-        $projectIds = $this->visibleProjects($user)->pluck('id');
+        $projectIds = $this->formProjects($user)->pluck('id');
 
         return Inertia::render('Tasks/Edit', [
             'task' => [
@@ -153,7 +175,7 @@ class TaskController extends Controller
                 'assignee_ids'    => $task->assignees->pluck('id'),
                 'watcher_ids'     => $task->watchers->pluck('id'),
             ],
-            'projects' => $this->visibleProjects($user)->get(['id', 'name']),
+            'projects' => $this->formProjects($user)->get(['id', 'name']),
             'users'    => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
             'parentTasks' => Task::whereIn('project_id', $projectIds)->whereKeyNot($task->id)->orderBy('title')->get(['id', 'title', 'project_id']),
         ]);
@@ -163,7 +185,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
         $task->loadMissing('assignees:id');
-        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists() && $this->canModify($user, $task), 403);
+        abort_unless($this->canAccessTask($user, $task) && $this->canModify($user, $task), 403);
 
         $data = $request->validate([
             'project_id'      => ['required', 'exists:projects,id'],
@@ -186,7 +208,7 @@ class TaskController extends Controller
         ]);
 
         // Target project must also be visible.
-        abort_unless($this->visibleProjects($user)->whereKey($data['project_id'])->exists(), 403);
+        abort_unless($this->canViewAll($user) || $this->visibleProjects($user)->whereKey($data['project_id'])->exists(), 403);
 
         $statusChanged = $task->status !== $data['status'];
         if ($statusChanged) {
@@ -212,7 +234,7 @@ class TaskController extends Controller
     public function show(Request $request, Task $task): Response
     {
         $user = $request->user();
-        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists(), 403);
+        abort_unless($this->canAccessTask($user, $task), 403);
 
         $this->recordView($task, $user);
 
@@ -342,7 +364,7 @@ class TaskController extends Controller
     public function comments(Request $request, Task $task)
     {
         $user = $request->user();
-        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists(), 403);
+        abort_unless($this->canAccessTask($user, $task), 403);
 
         $this->recordView($task, $user);
 
@@ -437,7 +459,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
         $task->loadMissing('assignees:id');
-        abort_unless($this->visibleProjects($user)->whereKey($task->project_id)->exists() && $this->canModify($user, $task), 403);
+        abort_unless($this->canAccessTask($user, $task) && $this->canModify($user, $task), 403);
 
         $data = $request->validate([
             'watcher_ids'   => ['array'],
@@ -453,8 +475,7 @@ class TaskController extends Controller
     public function uploadAttachment(Request $request, Task $task)
     {
         $task->loadMissing('assignees:id');
-        abort_unless($this->visibleProjects($request->user())->whereKey($task->project_id)->exists(), 403);
-        abort_unless($this->canModify($request->user(), $task), 403);
+        abort_unless($this->canAccessTask($request->user(), $task) && $this->canModify($request->user(), $task), 403);
 
         $request->validate([
             'file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip'],

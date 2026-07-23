@@ -38,7 +38,11 @@
       "Bash(rm -f storage/framework/views/*.php 2>/dev/null; php artisan optimize:clear 2>&1 | tail -2; php artisan queue:flush 2>&1 >/dev/null *)",
       "Bash(tasklist)",
       "Bash(wmic process *)",
-      "Bash(taskkill //PID 38440 //F)"
+      "Bash(taskkill //PID 38440 //F)",
+      "Bash(grep -n 'visibleProjects\\($user\\)->whereKey\\($task->project_id\\)->exists\\(\\)' app/Http/Controllers/TaskController.php)",
+      "Bash(grep -n 'visibleProjects\\($request->user\\(\\)\\)->whereKey' app/Http/Controllers/TaskController.php)",
+      "Bash(grep -n 'whereKey\\($data\\\\['\\\\''project_id'\\\\''\\\\]\\)' app/Http/Controllers/TaskController.php)",
+      "Bash(php -l app/Http/Controllers/TaskController.php)"
     ],
     "additionalDirectories": [
       "D:\\laragon\\www\\mgi-project-task\\storage\\framework\\views"
