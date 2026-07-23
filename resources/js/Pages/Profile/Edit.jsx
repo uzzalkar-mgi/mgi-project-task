@@ -20,6 +20,13 @@ function fmt(d) {
 
 const TASK_TONE = { todo: 'slate', in_progress: 'blue', under_review: 'amber', done: 'green', blocked: 'red' };
 const TASK_LABEL = { todo: 'To Do', in_progress: 'In Progress', under_review: 'Under Review', done: 'Done', blocked: 'Blocked' };
+const CHIP_COLORS = {
+    todo:         { active: 'border-slate-500 bg-slate-500 text-white',       idle: 'border-slate-200 text-slate-600 hover:bg-slate-50' },
+    in_progress:  { active: 'border-sky-500 bg-sky-500 text-white',           idle: 'border-sky-200 text-sky-600 hover:bg-sky-50' },
+    under_review: { active: 'border-amber-500 bg-amber-500 text-white',       idle: 'border-amber-200 text-amber-600 hover:bg-amber-50' },
+    done:         { active: 'border-emerald-500 bg-emerald-500 text-white',   idle: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50' },
+    blocked:      { active: 'border-rose-500 bg-rose-500 text-white',         idle: 'border-rose-200 text-rose-600 hover:bg-rose-50' },
+};
 const PROJ_TONE = { active: 'green', on_hold: 'amber', completed: 'blue', cancelled: 'red' };
 
 function InfoRow({ icon, label, value }) {
@@ -313,14 +320,18 @@ export default function Edit({
                         {/* Status filters + search — same row */}
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <div className="flex flex-wrap gap-2">
-                                <button onClick={() => setAssignStatus('all')} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === 'all' ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                                    All <span className="ml-1 text-slate-400">{tasks.length}</span>
+                                <button onClick={() => setAssignStatus('all')} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === 'all' ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                                    All <span className={`ml-1 ${assignStatus === 'all' ? 'text-white/70' : 'text-slate-400'}`}>{tasks.length}</span>
                                 </button>
-                                {STATUS_KEYS.map((s) => (
-                                    <button key={s} onClick={() => setAssignStatus(s)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${assignStatus === s ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                                        {TASK_LABEL[s]} <span className="ml-1 text-slate-400">{statusCount(s)}</span>
-                                    </button>
-                                ))}
+                                {STATUS_KEYS.map((s) => {
+                                    const c = CHIP_COLORS[s];
+                                    const on = assignStatus === s;
+                                    return (
+                                        <button key={s} onClick={() => setAssignStatus(s)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${on ? c.active : c.idle}`}>
+                                            {TASK_LABEL[s]} <span className={`ml-1 ${on ? 'text-white/70' : 'opacity-60'}`}>{statusCount(s)}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                             <SearchInput value={q} onChange={setQ} placeholder="Search assigned tasks…" />
                         </div>
