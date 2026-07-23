@@ -165,6 +165,30 @@ export default function Public({ task, comments }) {
                     )}
                 </SectionCard>
 
+                {/* Work Log */}
+                {task.work_logs?.length > 0 && (
+                    <SectionCard
+                        icon={<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg>}
+                        iconBg="bg-indigo-500"
+                        title="Daily Work Log"
+                        count={task.work_logs.length}
+                        right={task.work_hours > 0 ? <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{task.work_hours}h total</span> : null}
+                    >
+                        <div className="space-y-3">
+                            {task.work_logs.map((l) => (
+                                <div key={l.id} className="rounded-xl border border-slate-100 p-3">
+                                    <div className="mb-1 flex flex-wrap items-center gap-2 text-xs">
+                                        <span className="font-bold text-slate-800">{fmt(l.work_date)}</span>
+                                        <span className="text-slate-400">· {l.author}</span>
+                                        {l.hours != null && <span className="rounded-full bg-brand-50 px-2 py-0.5 font-semibold text-brand-700">{l.hours}h</span>}
+                                    </div>
+                                    <div className="rich text-sm text-slate-700" dangerouslySetInnerHTML={{ __html: l.body }} />
+                                </div>
+                            ))}
+                        </div>
+                    </SectionCard>
+                )}
+
                 {/* Discussion */}
                 <SectionCard
                     icon={<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>}

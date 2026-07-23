@@ -115,6 +115,12 @@ class Task extends Model
         return $this->hasMany(Answer::class);
     }
 
+    /** Date-wise daily work log entries. */
+    public function workLogs(): HasMany
+    {
+        return $this->hasMany(TaskWorkLog::class);
+    }
+
     /** Tasks this task depends on. */
     public function dependencies(): HasMany
     {

@@ -193,6 +193,84 @@ function AnswerItem({ a, canAccept }) {
     );
 }
 
+function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function WorkLogForm({ taskUuid }) {
+    const { data, setData, post, processing, reset, errors } = useForm({ work_date: todayStr(), hours: '', body: '' });
+    const submit = (e) => {
+        e.preventDefault();
+        if (richEmpty(data.body)) return;
+        post(route('worklogs.store', taskUuid), { preserveScroll: true, onSuccess: () => reset('body', 'hours') });
+    };
+    return (
+        <form onSubmit={submit} className="rounded-xl border border-brand-100 bg-brand-50/40 p-3">
+            <div className="mb-2 flex flex-wrap gap-2">
+                <div>
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Date</label>
+                    <input type="date" value={data.work_date} onChange={(e) => setData('work_date', e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                </div>
+                <div>
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Hours</label>
+                    <input type="number" step="0.5" min="0" max="24" value={data.hours} onChange={(e) => setData('hours', e.target.value)} placeholder="e.g. 3.5" className="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                </div>
+            </div>
+            {errors.work_date && <p className="mb-1 text-sm text-rose-500">{errors.work_date}</p>}
+            <RichTextEditor value={data.body} onChange={(html) => setData('body', html)} placeholder="What did you work on today…" />
+            <div className="mt-2">
+                <button type="submit" disabled={processing || richEmpty(data.body)} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+                    <Icon name="plus" className="h-4 w-4" /> Add Entry
+                </button>
+            </div>
+        </form>
+    );
+}
+
+function WorkLogTimeline({ logs }) {
+    // Group by work_date (already sorted desc by controller).
+    const groups = [];
+    const idx = {};
+    logs.forEach((l) => {
+        if (idx[l.work_date] === undefined) { idx[l.work_date] = groups.length; groups.push({ date: l.work_date, items: [] }); }
+        groups[idx[l.work_date]].items.push(l);
+    });
+    const fmtDate = (d) => new Date(d).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+
+    return (
+        <div className="space-y-5">
+            {groups.map((g) => {
+                const dayHours = g.items.reduce((n, l) => n + (l.hours || 0), 0);
+                return (
+                    <div key={g.date} className="relative border-l-2 border-slate-100 pl-4">
+                        <span className="absolute -left-[7px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-500" />
+                        <div className="mb-2 flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-800">{fmtDate(g.date)}</span>
+                            {dayHours > 0 && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">{dayHours}h</span>}
+                        </div>
+                        <div className="space-y-2">
+                            {g.items.map((l) => (
+                                <div key={l.id} className="rounded-lg border border-slate-100 bg-white p-3">
+                                    <div className="mb-1 flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-[10px] font-bold text-brand-700">{initials(l.author)}</span>
+                                            <span className="text-xs font-semibold text-slate-700">{l.author}</span>
+                                            {l.hours != null && <span className="text-xs text-slate-400">· {l.hours}h</span>}
+                                        </div>
+                                        {l.can_delete && <button onClick={() => { if (confirm('Delete this entry?')) router.delete(route('worklogs.destroy', l.id), { preserveScroll: true }); }} className="text-xs font-medium text-rose-500 hover:underline">Delete</button>}
+                                    </div>
+                                    <div className="rich text-sm text-slate-700" dangerouslySetInnerHTML={{ __html: l.body }} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 function AvatarStack({ names = [], tone = 'bg-brand-500' }) {
     if (!names.length) return <span className="text-sm text-slate-400">—</span>;
     return (
@@ -256,7 +334,7 @@ function WatchersEditor({ task, users }) {
     );
 }
 
-export default function Show({ task, comments, users = [], canChangeStatus, canModify, canAnswer, canAccept }) {
+export default function Show({ task, comments, users = [], canChangeStatus, canModify, canAnswer, canAccept, canLog }) {
     const fileRef = useRef();
     const [shareCopied, setShareCopied] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
@@ -463,6 +541,15 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                                 : <span className="ml-1 hidden rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-600 sm:inline">Pending</span>}
                         </button>
                         <button
+                            onClick={() => setTab('worklog')}
+                            className={`flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${tab === 'worklog' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg>
+                            Work Log
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-100 px-1.5 text-xs font-bold text-brand-700">{task.work_logs.length}</span>
+                            {task.work_hours > 0 && <span className="ml-1 hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 sm:inline">{task.work_hours}h</span>}
+                        </button>
+                        <button
                             onClick={() => setTab('discussion')}
                             className={`flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${tab === 'discussion' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-slate-500 hover:text-slate-800'}`}
                         >
@@ -484,6 +571,22 @@ export default function Show({ task, comments, users = [], canChangeStatus, canM
                             <div className="space-y-3">
                                 {task.answers.map((a) => <AnswerItem key={a.id} a={a} canAccept={canAccept} />)}
                             </div>
+                        )}
+                    </div>
+
+                    {/* Work Log tab */}
+                    <div className={`p-5 ${tab === 'worklog' ? '' : 'hidden'}`}>
+                        {canLog && <div className="mb-4"><WorkLogForm taskUuid={task.uuid} /></div>}
+                        {task.work_logs.length === 0 ? (
+                            <div className="flex flex-col items-center py-10 text-center">
+                                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-500"><svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 8v4l3 3M12 3a9 9 0 100 18 9 9 0 000-18z" /></svg></span>
+                                <p className="mt-3 text-sm text-slate-400">{canLog ? 'No work logged yet — add your first daily entry above.' : 'No work logged yet.'}</p>
+                            </div>
+                        ) : (
+                            <>
+                                {task.work_hours > 0 && <p className="mb-4 text-sm text-slate-500">Total logged: <span className="font-bold text-slate-800">{task.work_hours}h</span> across {task.work_logs.length} {task.work_logs.length === 1 ? 'entry' : 'entries'}.</p>}
+                                <WorkLogTimeline logs={task.work_logs} />
+                            </>
                         )}
                     </div>
 

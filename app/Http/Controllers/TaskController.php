@@ -225,6 +225,7 @@ class TaskController extends Controller
             'parent:id,uuid,title',
             'subtasks:id,uuid,title,status,due_date,parent_task_id',
             'answers' => fn ($q) => $q->with(['author:id,name', 'attachments'])->orderByDesc('is_accepted')->orderBy('created_at'),
+            'workLogs' => fn ($q) => $q->with('author:id,name')->orderByDesc('work_date')->orderByDesc('id'),
         ]);
 
         return Inertia::render('Tasks/Show', [
@@ -263,6 +264,15 @@ class TaskController extends Controller
                         'title' => $t->title, 'url' => route('attachments.show', $t->id), 'file_type' => $t->file_type,
                     ]),
                 ]),
+                'work_logs'    => $task->workLogs->map(fn ($w) => [
+                    'id'         => $w->id,
+                    'body'       => $w->body,
+                    'author'     => $w->author?->name,
+                    'work_date'  => $w->work_date?->toDateString(),
+                    'hours'      => $w->hours !== null ? (float) $w->hours : null,
+                    'can_delete' => $user->isSuperAdmin() || $w->user_id === $user->id,
+                ]),
+                'work_hours'   => (float) $task->workLogs->sum('hours'),
             ],
             'comments' => Comment::treeForTask($task),
             'users'    => $this->canModify($user, $task)
@@ -272,6 +282,7 @@ class TaskController extends Controller
             'canModify' => $this->canModify($user, $task),
             'canAnswer' => $this->canAnswer($user, $task),
             'canAccept' => $this->canModify($user, $task),
+            'canLog'    => $this->canLog($user, $task),
         ]);
     }
 
@@ -284,6 +295,7 @@ class TaskController extends Controller
             'reporter:id,name',
             'attachments',
             'answers' => fn ($q) => $q->with(['author:id,name', 'attachments'])->orderByDesc('is_accepted')->orderBy('created_at'),
+            'workLogs' => fn ($q) => $q->with('author:id,name')->orderByDesc('work_date')->orderByDesc('id'),
         ]);
 
         return Inertia::render('Tasks/Public', [
@@ -313,6 +325,14 @@ class TaskController extends Controller
                         'title' => $t->title, 'url' => $t->url, 'file_type' => $t->file_type,
                     ]),
                 ]),
+                'work_logs'    => $task->workLogs->map(fn ($w) => [
+                    'id'        => $w->id,
+                    'body'      => $w->body,
+                    'author'    => $w->author?->name,
+                    'work_date' => $w->work_date?->toDateString(),
+                    'hours'     => $w->hours !== null ? (float) $w->hours : null,
+                ]),
+                'work_hours'   => (float) $task->workLogs->sum('hours'),
             ],
             'comments' => Comment::treeForTask($task),
         ]);
@@ -358,6 +378,17 @@ class TaskController extends Controller
     {
         return $user->isSuperAdmin()
             || $task->assignees->contains('id', $user->id);
+    }
+
+    /** Can log daily work? Anyone on the task (reporter/assignee/watcher) + super. */
+    private function canLog(User $user, Task $task): bool
+    {
+        $task->loadMissing('watchers:id');
+
+        return $user->isSuperAdmin()
+            || $task->reporter_id === $user->id
+            || $task->assignees->contains('id', $user->id)
+            || $task->watchers->contains('id', $user->id);
     }
 
     /**

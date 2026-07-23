@@ -17,6 +17,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimelineController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkLogController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -57,6 +58,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/tasks/{task}/answers', [AnswerController::class, 'store'])->name('answers.store');
     Route::patch('/answers/{answer}/accept', [AnswerController::class, 'accept'])->name('answers.accept');
     Route::delete('/answers/{answer}', [AnswerController::class, 'destroy'])->name('answers.destroy');
+
+    // Daily work log.
+    Route::post('/tasks/{task}/worklogs', [WorkLogController::class, 'store'])->name('worklogs.store');
+    Route::delete('/worklogs/{worklog}', [WorkLogController::class, 'destroy'])->name('worklogs.destroy');
 
     // Reports.
     Route::get('/reports/employees', [ReportController::class, 'employees'])->middleware('perm:reports.menu')->name('reports.employees');
