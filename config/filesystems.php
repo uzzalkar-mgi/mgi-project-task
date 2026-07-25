@@ -60,6 +60,25 @@ return [
             'report' => false,
         ],
 
+        'gcs' => [
+            'driver'   => 's3',
+            'key'      => env('GCS_ACCESS_KEY_ID'),
+            'secret'   => env('GCS_SECRET_ACCESS_KEY'),
+            'region'   => env('GCS_REGION', 'auto'),
+            'bucket'   => env('GCS_BUCKET'),
+            'endpoint' => env('GCS_ENDPOINT', 'https://storage.googleapis.com'),
+            'root'     => env('GCS_ROOT', ''),          // optional path prefix
+            'use_path_style_endpoint' => true,
+            'signature_version'       => 'v4',
+
+            // aws-sdk-php >= 3.337 sends CRC32 checksum headers GCS rejects with 400
+            'request_checksum_calculation' => 'when_required',
+            'response_checksum_validation' => 'when_required',
+
+            'throw'   => true,
+            'report'  => false,
+        ],
+
     ],
 
     /*
