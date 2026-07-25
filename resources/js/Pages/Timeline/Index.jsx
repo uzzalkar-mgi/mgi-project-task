@@ -67,6 +67,18 @@ export default function Index({ projects }) {
 
     const findUuid = (id) => projects.flatMap((p) => p.tasks).find((t) => t.id === id)?.uuid;
 
+    // Status counters across all shown tasks.
+    const allTasks = useMemo(() => projects.flatMap((p) => p.tasks), [projects]);
+    const stat = (s) => allTasks.filter((t) => t.status === s).length;
+    const STATS = [
+        { key: 'total', label: 'Total Tasks', value: allTasks.length, bar: 'bg-brand-500', text: 'text-brand-700' },
+        { key: 'in_progress', label: 'In Progress', value: stat('in_progress'), bar: 'bg-sky-500', text: 'text-sky-600' },
+        { key: 'under_review', label: 'Under Review', value: stat('under_review'), bar: 'bg-amber-500', text: 'text-amber-600' },
+        { key: 'todo', label: 'To Do', value: stat('todo'), bar: 'bg-slate-400', text: 'text-slate-600' },
+        { key: 'done', label: 'Done', value: stat('done'), bar: 'bg-emerald-500', text: 'text-emerald-600' },
+        { key: 'blocked', label: 'Blocked', value: stat('blocked'), bar: 'bg-rose-500', text: 'text-rose-600' },
+    ];
+
     const onMove = (e) => { const d = dragRef.current; if (d) setDrag({ id: d.id, deltaDays: Math.round((e.clientX - d.startX) / DAY_W) }); };
     const onUp = () => {
         window.removeEventListener('mousemove', onMove);
@@ -92,6 +104,19 @@ export default function Index({ projects }) {
     return (
         <AuthenticatedLayout header={<PageHeader title="Timeline" subtitle="Gantt view · drag a bar to reschedule" />}>
             <Head title="Timeline" />
+
+            {/* Status counters */}
+            <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {STATS.map((s) => (
+                    <div key={s.key} className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full ${s.bar}`} />
+                            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{s.label}</p>
+                        </div>
+                        <p className={`mt-1 text-2xl font-bold ${s.text}`}>{s.value}</p>
+                    </div>
+                ))}
+            </div>
 
             <Card className="overflow-hidden">
                 <div className="flex">
