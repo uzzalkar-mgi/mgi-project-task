@@ -56,10 +56,10 @@ class ImageService
         $name = Str::uuid()->toString().'.'.$ext;
         $path = trim($folder, '/').'/'.$name;
 
-        $this->client()->putObject($this->putParams($path, [
+        $this->put($path, [
             'Body'        => fopen($file->getRealPath(), 'r'),
             'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
-        ]));
+        ]);
 
         return [
             'path' => $path,
@@ -72,30 +72,43 @@ class ImageService
     /** Store raw bytes at a given path (tests / non-request callers). */
     public function putRaw(string $contents, string $path, ?string $contentType = null): array
     {
-        $this->client()->putObject($this->putParams($path, [
+        $this->put($path, [
             'Body'        => $contents,
             'ContentType' => $contentType ?: 'application/octet-stream',
-        ]));
+        ]);
 
         return ['path' => $path, 'url' => $this->url($path)];
     }
 
-    /** Build putObject params, adding ACL public-read when configured public. */
-    private function putParams(string $path, array $extra): array
+    /**
+     * Put an object, adding ACL public-read when visibility=public.
+     * If the bucket has uniform access ON (ACL rejected), retry WITHOUT the
+     * ACL so the upload still succeeds — the object just won't be per-object
+     * public (make the bucket public via IAM instead).
+     */
+    private function put(string $path, array $extra): void
     {
-        $params = [
+        $base = [
             'Bucket' => $this->cfg['bucket'],
             'Key'    => $this->key($path),
             ...$extra,
         ];
+        $public = ($this->cfg['visibility'] ?? 'private') === 'public';
 
-        // AWS-style per-object public. Requires a FINE-GRAINED bucket
-        // (uniform bucket-level access OFF), else GCS 400s.
-        if (($this->cfg['visibility'] ?? 'private') === 'public') {
-            $params['ACL'] = 'public-read';
+        if (! $public) {
+            $this->client()->putObject($base);
+            return;
         }
 
-        return $params;
+        try {
+            $this->client()->putObject([...$base, 'ACL' => 'public-read']);
+        } catch (\Aws\S3\Exception\S3Exception $e) {
+            // ACL rejected (likely uniform bucket-level access ON) → retry without it.
+            if (is_resource($extra['Body'] ?? null)) {
+                rewind($extra['Body']);
+            }
+            $this->client()->putObject($base);
+        }
     }
 
     /** Permanent public URL — only reachable if the bucket grants allUsers objectViewer. */
