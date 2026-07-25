@@ -56,12 +56,10 @@ class ImageService
         $name = Str::uuid()->toString().'.'.$ext;
         $path = trim($folder, '/').'/'.$name;
 
-        $this->client()->putObject([
-            'Bucket'      => $this->cfg['bucket'],
-            'Key'         => $this->key($path),
+        $this->client()->putObject($this->putParams($path, [
             'Body'        => fopen($file->getRealPath(), 'r'),
             'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
-        ]);
+        ]));
 
         return [
             'path' => $path,
@@ -74,14 +72,30 @@ class ImageService
     /** Store raw bytes at a given path (tests / non-request callers). */
     public function putRaw(string $contents, string $path, ?string $contentType = null): array
     {
-        $this->client()->putObject([
-            'Bucket'      => $this->cfg['bucket'],
-            'Key'         => $this->key($path),
+        $this->client()->putObject($this->putParams($path, [
             'Body'        => $contents,
             'ContentType' => $contentType ?: 'application/octet-stream',
-        ]);
+        ]));
 
         return ['path' => $path, 'url' => $this->url($path)];
+    }
+
+    /** Build putObject params, adding ACL public-read when configured public. */
+    private function putParams(string $path, array $extra): array
+    {
+        $params = [
+            'Bucket' => $this->cfg['bucket'],
+            'Key'    => $this->key($path),
+            ...$extra,
+        ];
+
+        // AWS-style per-object public. Requires a FINE-GRAINED bucket
+        // (uniform bucket-level access OFF), else GCS 400s.
+        if (($this->cfg['visibility'] ?? 'private') === 'public') {
+            $params['ACL'] = 'public-read';
+        }
+
+        return $params;
     }
 
     /** Permanent public URL — only reachable if the bucket grants allUsers objectViewer. */

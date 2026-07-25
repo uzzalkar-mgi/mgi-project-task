@@ -68,6 +68,7 @@ return [
             'bucket'   => env('GCS_BUCKET'),
             'endpoint' => env('GCS_ENDPOINT', 'https://storage.googleapis.com'),
             'root'     => env('GCS_ROOT', ''),          // optional path prefix
+            'visibility' => env('GCS_VISIBILITY', 'public'), // 'public' sends ACL public-read (needs fine-grained bucket)
             'use_path_style_endpoint' => true,
             'signature_version'       => 'v4',
 
