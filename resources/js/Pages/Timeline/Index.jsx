@@ -19,10 +19,15 @@ export default function Index({ projects }) {
     const [drag, setDrag] = useState(null); // { id, deltaDays }
     const dragRef = useRef(null);
 
+    // One project at a time keeps the chart small & readable.
+    const withTasks = useMemo(() => projects.filter((p) => p.tasks.length > 0), [projects]);
+    const [sel, setSel] = useState(withTasks[0]?.uuid ?? '');
+    const shown = useMemo(() => projects.filter((p) => p.uuid === sel), [projects, sel]);
+
     const { rows, min, days, taskPos } = useMemo(() => {
         let lo = Infinity, hi = -Infinity;
         const flat = [];
-        projects.forEach((p) => {
+        shown.forEach((p) => {
             flat.push({ type: 'project', key: 'p' + p.uuid, name: p.name, status: p.status });
             p.tasks.forEach((t) => {
                 const s = parse(t.start_date) ?? parse(t.due_date);
@@ -45,16 +50,16 @@ export default function Index({ projects }) {
             }
         });
         return { rows: flat, min, days, taskPos };
-    }, [projects]);
+    }, [shown]);
 
     const depEdges = useMemo(() => {
         const edges = [];
-        projects.forEach((p) => (p.deps ?? []).forEach((d) => {
+        shown.forEach((p) => (p.deps ?? []).forEach((d) => {
             const a = taskPos[d.from]; const b = taskPos[d.to];
             if (a && b) edges.push({ a, b, key: `${d.from}-${d.to}` });
         }));
         return edges;
-    }, [projects, taskPos]);
+    }, [shown, taskPos]);
 
     const width = days * DAY_W;
 
@@ -65,10 +70,10 @@ export default function Index({ projects }) {
     }
     const todayOff = Math.round((Date.now() - min) / MS);
 
-    const findUuid = (id) => projects.flatMap((p) => p.tasks).find((t) => t.id === id)?.uuid;
+    const findUuid = (id) => shown.flatMap((p) => p.tasks).find((t) => t.id === id)?.uuid;
 
-    // Status counters across all shown tasks.
-    const allTasks = useMemo(() => projects.flatMap((p) => p.tasks), [projects]);
+    // Status counters for the selected project.
+    const allTasks = useMemo(() => shown.flatMap((p) => p.tasks), [shown]);
     const stat = (s) => allTasks.filter((t) => t.status === s).length;
     const STATS = [
         { key: 'total', label: 'Total Tasks', value: allTasks.length, bar: 'bg-brand-500', text: 'text-brand-700' },
@@ -102,9 +107,37 @@ export default function Index({ projects }) {
     };
 
     return (
-        <AuthenticatedLayout header={<PageHeader title="Timeline" subtitle="Gantt view · drag a bar to reschedule" />}>
+        <AuthenticatedLayout
+            header={
+                <PageHeader
+                    title="Timeline"
+                    subtitle="Gantt view · drag a bar to reschedule"
+                    actions={
+                        withTasks.length > 0 && (
+                            <select
+                                value={sel}
+                                onChange={(e) => setSel(e.target.value)}
+                                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                            >
+                                {withTasks.map((p) => <option key={p.uuid} value={p.uuid}>{p.name} ({p.tasks.length})</option>)}
+                            </select>
+                        )
+                    }
+                />
+            }
+        >
             <Head title="Timeline" />
 
+            {withTasks.length === 0 ? (
+                <Card className="flex flex-col items-center justify-center px-6 py-20 text-center">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                        <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" /></svg>
+                    </span>
+                    <h2 className="mt-4 text-lg font-semibold text-slate-900">No scheduled tasks</h2>
+                    <p className="mt-1 text-sm text-slate-500">Projects with dated tasks will appear here on the timeline.</p>
+                </Card>
+            ) : (
+            <>
             {/* Status counters */}
             <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {STATS.map((s) => (
@@ -191,6 +224,8 @@ export default function Index({ projects }) {
                 <span className="flex items-center gap-1.5"><span className="h-3 w-px bg-rose-400" /> today</span>
                 <span className="text-slate-400">Arrows = dependencies · drag a bar to reschedule</span>
             </div>
+            </>
+            )}
         </AuthenticatedLayout>
     );
 }
