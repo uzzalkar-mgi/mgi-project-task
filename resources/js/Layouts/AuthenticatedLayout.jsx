@@ -4,7 +4,7 @@ import { Toast } from '@/Components/ui/Toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { MENU, hrefFor, isActive } from '@/menu';
 import { Link, router, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 function initials(name = '') {
     return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || '?';
@@ -62,9 +62,9 @@ function NavGroup({ item, onNavigate }) {
     if (children.length === 0) return null;
 
     const groupActive = isActive(item.match);
-    const [open, setOpen] = useState(groupActive);
-    // Layout persists across Inertia visits — auto-open the group when one of its children is active.
-    useEffect(() => { if (groupActive) setOpen(true); }, [groupActive]);
+    const [open, setOpen] = useState(false);
+    // Show children when the group is open OR one of its children is the active route.
+    const expanded = open || groupActive;
 
     return (
         <li>
@@ -74,9 +74,9 @@ function NavGroup({ item, onNavigate }) {
             >
                 <Icon name={item.icon} className={`h-5 w-5 ${groupActive ? 'text-brand-600' : 'text-slate-400'}`} />
                 <span className="flex-1 truncate text-left font-medium">{item.label}</span>
-                <svg className={`h-4 w-4 transition ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m6 9 6 6 6-6" /></svg>
+                <svg className={`h-4 w-4 transition ${expanded ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="m6 9 6 6 6-6" /></svg>
             </button>
-            {open && (
+            {expanded && (
                 <ul className="mt-0.5 space-y-0.5 border-l border-slate-100 pl-3">
                     {children.map((c) => <li key={c.route}><NavLeaf item={c} onNavigate={onNavigate} /></li>)}
                 </ul>
