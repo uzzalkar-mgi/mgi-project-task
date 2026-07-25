@@ -62,22 +62,14 @@ function NavGroup({ item, onNavigate }) {
     if (children.length === 0) return null;
 
     const groupActive = isActive(item.match);
-    const storeKey = 'nav-open:' + item.label;
-    const [open, setOpen] = useState(() => {
-        try { return sessionStorage.getItem(storeKey) === '1'; } catch { return false; }
-    });
-    const toggle = () => setOpen((v) => {
-        const next = !v;
-        try { sessionStorage.setItem(storeKey, next ? '1' : '0'); } catch { /* ignore */ }
-        return next;
-    });
-    // Show children when manually opened OR one of its children is the active route.
+    const [open, setOpen] = useState(false);
+    // Expand only when you're on one of its pages, or you manually opened it (transient).
     const expanded = open || groupActive;
 
     return (
         <li>
             <button
-                onClick={toggle}
+                onClick={() => setOpen((v) => !v)}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${groupActive ? 'text-brand-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
             >
                 <Icon name={item.icon} className={`h-5 w-5 ${groupActive ? 'text-brand-600' : 'text-slate-400'}`} />
