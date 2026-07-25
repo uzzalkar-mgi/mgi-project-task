@@ -4,7 +4,7 @@ import { Toast } from '@/Components/ui/Toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { MENU, hrefFor, isActive } from '@/menu';
 import { Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function initials(name = '') {
     return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase() || '?';
@@ -63,6 +63,8 @@ function NavGroup({ item, onNavigate }) {
 
     const groupActive = isActive(item.match);
     const [open, setOpen] = useState(groupActive);
+    // Layout persists across Inertia visits — auto-open the group when one of its children is active.
+    useEffect(() => { if (groupActive) setOpen(true); }, [groupActive]);
 
     return (
         <li>
