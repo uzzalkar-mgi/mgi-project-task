@@ -87,6 +87,127 @@ function AvatarUpload({ user, name }) {
     );
 }
 
+function ApiTokensPanel({ tokens = [], newToken }) {
+    const { data, setData, post, processing, reset, errors } = useForm({ name: '' });
+    const [copied, setCopied] = useState(false);
+    const create = (e) => { e.preventDefault(); post(route('tokens.store'), { preserveScroll: true, onSuccess: () => reset() }); };
+    const revoke = (t) => { if (confirm(`Revoke “${t.name}”?`)) router.delete(route('tokens.destroy', t.id), { preserveScroll: true }); };
+    const copy = () => {
+        const doCopy = navigator.clipboard && window.isSecureContext
+            ? navigator.clipboard.writeText(newToken)
+            : Promise.reject();
+        doCopy.then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }, () => {});
+    };
+
+    return (
+        <div className="max-w-3xl">
+            <SectionTitle>API Access</SectionTitle>
+            <p className="mb-3 text-xs text-slate-400">Personal access tokens authenticate API requests. Send header <code className="rounded bg-slate-100 px-1">Authorization: Bearer &lt;token&gt;</code>. Endpoints: <code className="rounded bg-slate-100 px-1">/api/user</code>, <code className="rounded bg-slate-100 px-1">/api/my/tasks</code>.</p>
+
+            {newToken && (
+                <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="mb-1.5 text-xs font-semibold text-emerald-700">New token — copy it now, it won't be shown again:</p>
+                    <div className="flex items-center gap-2">
+                        <input readOnly value={newToken} onFocus={(e) => e.target.select()} className="w-full rounded-lg border border-emerald-300 bg-white px-2.5 py-2 font-mono text-xs text-slate-700 outline-none" />
+                        <button onClick={copy} className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">{copied ? 'Copied!' : 'Copy'}</button>
+                    </div>
+                </div>
+            )}
+
+            <form onSubmit={create} className="mb-4 flex items-end gap-2">
+                <div className="flex-1">
+                    <label className="mb-1 block text-sm font-semibold text-slate-700">Token name</label>
+                    <input value={data.name} onChange={(e) => setData('name', e.target.value)} placeholder="e.g. Mobile app" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                    {errors.name && <p className="mt-1 text-sm text-rose-500">{errors.name}</p>}
+                </div>
+                <button type="submit" disabled={processing || !data.name.trim()} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+                    <Icon name="plus" className="h-4 w-4" /> Create
+                </button>
+            </form>
+
+            {tokens.length === 0 ? (
+                <p className="text-sm text-slate-400">No tokens yet.</p>
+            ) : (
+                <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100">
+                    {tokens.map((t) => (
+                        <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-slate-800">{t.name}</p>
+                                <p className="text-xs text-slate-400">Created {t.created_at} · {t.last_used_at ? `last used ${t.last_used_at}` : 'never used'}</p>
+                            </div>
+                            <button onClick={() => revoke(t)} className="text-xs font-medium text-rose-500 hover:underline">Revoke</button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
+function SecurityPanel({ twoFactor = {}, loginHistory = [] }) {
+    const enableForm = useForm({});
+    const confirmForm = useForm({ code: '' });
+    const enable = () => enableForm.post(route('2fa.enable'), { preserveScroll: true });
+    const confirm = (e) => { e.preventDefault(); confirmForm.post(route('2fa.confirm'), { preserveScroll: true, onSuccess: () => confirmForm.reset() }); };
+    const disable = () => { if (confirm2('Disable two-factor authentication?')) router.delete(route('2fa.disable'), { preserveScroll: true }); };
+    function confirm2(m) { return window.confirm(m); }
+
+    return (
+        <div className="max-w-3xl space-y-6">
+            <div>
+                <SectionTitle>Two-Factor Authentication</SectionTitle>
+                <p className="mb-3 text-xs text-slate-400">Add a second step at login using an authenticator app (Google Authenticator, Authy, 1Password…).</p>
+
+                {twoFactor.enabled ? (
+                    <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                        <span className="flex items-center gap-2 text-sm font-medium text-emerald-700"><Icon name="check" className="h-4 w-4" /> 2FA is enabled.</span>
+                        <button onClick={disable} className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-50">Disable</button>
+                    </div>
+                ) : twoFactor.pending ? (
+                    <div className="rounded-xl border border-slate-200 p-4">
+                        <p className="mb-2 text-sm text-slate-700">1. Scan this QR (or enter the key) in your authenticator app:</p>
+                        <div className="flex flex-wrap items-center gap-4">
+                            <img alt="2FA QR" className="h-40 w-40 rounded-lg border border-slate-200" src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(twoFactor.pending.uri)}`} />
+                            <div className="text-xs">
+                                <p className="text-slate-400">Setup key</p>
+                                <p className="mt-0.5 break-all font-mono text-sm text-slate-700">{twoFactor.pending.secret}</p>
+                            </div>
+                        </div>
+                        <form onSubmit={confirm} className="mt-4 flex items-end gap-2">
+                            <div>
+                                <label className="mb-1 block text-sm font-semibold text-slate-700">2. Enter the 6-digit code</label>
+                                <input inputMode="numeric" maxLength={6} value={confirmForm.data.code} onChange={(e) => confirmForm.setData('code', e.target.value.replace(/\D/g, ''))} placeholder="000000" className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-center font-bold tracking-widest outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />
+                            </div>
+                            <button type="submit" disabled={confirmForm.processing || confirmForm.data.code.length !== 6} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">Confirm</button>
+                        </form>
+                        {confirmForm.errors.code && <p className="mt-1 text-sm text-rose-500">{confirmForm.errors.code}</p>}
+                    </div>
+                ) : (
+                    <button onClick={enable} disabled={enableForm.processing} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60">Enable 2FA</button>
+                )}
+            </div>
+
+            <div>
+                <SectionTitle>Recent Logins</SectionTitle>
+                {loginHistory.length === 0 ? (
+                    <p className="text-sm text-slate-400">No login history yet.</p>
+                ) : (
+                    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100">
+                        {loginHistory.map((h, i) => (
+                            <li key={i} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium text-slate-800">{h.at} <span className="text-xs font-normal text-slate-400">· {h.ago}</span></p>
+                                    <p className="truncate text-xs text-slate-400">{h.ip} · {h.user_agent}</p>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </div>
+    );
+}
+
 function NotificationPrefsForm({ prefs }) {
     const { data, setData, patch, processing, recentlySuccessful } = useForm({ ...prefs });
     const submit = (e) => { e.preventDefault(); patch(route('profile.notifications'), { preserveScroll: true }); };
@@ -131,6 +252,7 @@ function NotificationPrefsForm({ prefs }) {
 
 export default function Edit({
     mustVerifyEmail, status, department, designation, departments, designations, notifyPrefs = {},
+    apiTokens = [], newToken = null, twoFactor = {}, loginHistory = [],
     ledProjects = [], memberProjects = [], tasks = [], createdTasks = [],
 }) {
     const user = usePage().props.auth.user;
@@ -166,6 +288,8 @@ export default function Edit({
         { key: 'personal', label: 'Personal Information' },
         { key: 'password', label: 'Password' },
         { key: 'notifications', label: 'Notifications' },
+        { key: 'apitokens', label: 'API Access' },
+        { key: 'security', label: 'Security' },
         { key: 'project', label: `Project (${projectList.length})` },
         { key: 'tasks', label: `Assign Task (${tasks.length})` },
         { key: 'taskdue', label: `Task Due (${dueList.length})` },
@@ -249,6 +373,16 @@ export default function Edit({
                     {/* Notifications tab */}
                     <div className={tab === 'notifications' ? '' : 'hidden'}>
                         <NotificationPrefsForm prefs={notifyPrefs} />
+                    </div>
+
+                    {/* API Access tab */}
+                    <div className={tab === 'apitokens' ? '' : 'hidden'}>
+                        <ApiTokensPanel tokens={apiTokens} newToken={newToken} />
+                    </div>
+
+                    {/* Security tab */}
+                    <div className={tab === 'security' ? '' : 'hidden'}>
+                        <SecurityPanel twoFactor={twoFactor} loginHistory={loginHistory} />
                     </div>
 
                     {/* Project tab */}

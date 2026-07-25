@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AnswerController;
+use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\AuditController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
@@ -18,6 +21,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimelineController;
+use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkLogController;
 use Illuminate\Support\Facades\Route;
@@ -72,6 +76,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Daily work log.
     Route::post('/tasks/{task}/worklogs', [WorkLogController::class, 'store'])->name('worklogs.store');
     Route::delete('/worklogs/{worklog}', [WorkLogController::class, 'destroy'])->name('worklogs.destroy');
+
+    // Calendar (tasks + meetings) + iCal export.
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar.ics', [CalendarController::class, 'ics'])->name('calendar.ics');
+
+    // Audit log (admin).
+    Route::get('/audit', [AuditController::class, 'index'])->middleware('perm:users.menu')->name('audit.index');
 
     // Reports.
     Route::get('/reports/employees', [ReportController::class, 'employees'])->middleware('perm:reports.menu')->name('reports.employees');
@@ -140,6 +151,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/notifications', [ProfileController::class, 'updateNotifications'])->name('profile.notifications');
+    Route::post('/profile/tokens', [ApiTokenController::class, 'store'])->name('tokens.store');
+    Route::delete('/profile/tokens/{token}', [ApiTokenController::class, 'destroy'])->name('tokens.destroy');
+    Route::post('/profile/2fa/enable', [TwoFactorController::class, 'enable'])->name('2fa.enable');
+    Route::post('/profile/2fa/confirm', [TwoFactorController::class, 'confirm'])->name('2fa.confirm');
+    Route::delete('/profile/2fa', [TwoFactorController::class, 'disable'])->name('2fa.disable');
     Route::post('/profile/image', [ProfileController::class, 'updateImage'])->name('profile.image');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });

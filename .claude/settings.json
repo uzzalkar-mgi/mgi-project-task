@@ -44,7 +44,12 @@
       "Bash(grep -n 'whereKey\\($data\\\\['\\\\''project_id'\\\\''\\\\]\\)' app/Http/Controllers/TaskController.php)",
       "Bash(php -l app/Http/Controllers/TaskController.php)",
       "Bash(Select-Object -First 12)",
-      "Bash(php -r '$l=json_decode\\(file_get_contents\\('\\\\''composer.lock'\\\\''\\),true\\); foreach\\($l['\\\\''packages'\\\\''] as $p\\){ if\\($p['\\\\''name'\\\\'']==='\\\\''aws/aws-sdk-php'\\\\''\\){ echo $p['\\\\''name'\\\\''].'\\\\'' '\\\\''.$p['\\\\''version'\\\\''].PHP_EOL; } if\\($p['\\\\''name'\\\\'']==='\\\\''league/flysystem-aws-s3-v3'\\\\''\\){ echo $p['\\\\''name'\\\\''].'\\\\'' '\\\\''.$p['\\\\''version'\\\\''].PHP_EOL; } }')"
+      "Bash(php -r '$l=json_decode\\(file_get_contents\\('\\\\''composer.lock'\\\\''\\),true\\); foreach\\($l['\\\\''packages'\\\\''] as $p\\){ if\\($p['\\\\''name'\\\\'']==='\\\\''aws/aws-sdk-php'\\\\''\\){ echo $p['\\\\''name'\\\\''].'\\\\'' '\\\\''.$p['\\\\''version'\\\\''].PHP_EOL; } if\\($p['\\\\''name'\\\\'']==='\\\\''league/flysystem-aws-s3-v3'\\\\''\\){ echo $p['\\\\''name'\\\\''].'\\\\'' '\\\\''.$p['\\\\''version'\\\\''].PHP_EOL; } }')",
+      "Bash(php -r '$l=json_decode\\(file_get_contents\\('\\\\''composer.lock'\\\\''\\),true\\); $f=array_filter\\($l['\\\\''packages'\\\\''],fn\\($p\\)=>$p['\\\\''name'\\\\'']==='\\\\''laravel/sanctum'\\\\''\\); echo $f? '\\\\''sanctum: '\\\\''.reset\\($f\\)['\\\\''version'\\\\''] : '\\\\''SANCTUM NOT INSTALLED'\\\\''; echo PHP_EOL;')",
+      "Bash(Select-String \"2fa|DONE|FAIL\")",
+      "Bash(php -r \"echo extension_loaded\\('gd'\\)?'GD:yes':'GD:no';echo PHP_EOL;\")",
+      "Bash(mkdir -p public/icons)",
+      "Bash(awk '{print $NF, $5\"b\"}')"
     ],
     "additionalDirectories": [
       "D:\\laragon\\www\\mgi-project-task\\storage\\framework\\views"

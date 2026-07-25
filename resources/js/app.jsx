@@ -24,3 +24,10 @@ createInertiaApp({
         showSpinner: true,
     },
 });
+
+// Register the PWA service worker (safe no-op if unsupported).
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+}

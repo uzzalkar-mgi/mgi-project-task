@@ -30,6 +30,27 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status'          => session('status'),
+            'apiTokens'       => $user->tokens()->latest()->get(['id', 'name', 'last_used_at', 'created_at'])->map(fn ($t) => [
+                'id'           => $t->id,
+                'name'         => $t->name,
+                'last_used_at' => $t->last_used_at?->diffForHumans(),
+                'created_at'   => $t->created_at?->format('d M Y'),
+            ]),
+            'newToken'        => session('newToken'),
+            'twoFactor'       => [
+                'enabled' => (bool) $user->two_factor_enabled,
+                'pending' => (! $user->two_factor_enabled && $user->two_factor_secret) ? [
+                    'secret' => $user->two_factor_secret,
+                    'uri'    => \App\Support\Totp::uri($user->two_factor_secret, $user->email, config('app.name')),
+                ] : null,
+            ],
+            'loginHistory'    => \App\Models\LoginHistory::where('user_id', $user->id)->latest('created_at')->limit(10)->get()
+                ->map(fn ($h) => [
+                    'ip'         => $h->ip,
+                    'user_agent' => $h->user_agent,
+                    'at'         => $h->created_at?->format('d M Y, H:i'),
+                    'ago'        => $h->created_at?->diffForHumans(),
+                ]),
             'notifyPrefs'     => [
                 'notify_task_create_mail' => (bool) $user->notify_task_create_mail,
                 'notify_task_status_mail' => (bool) $user->notify_task_status_mail,

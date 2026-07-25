@@ -31,7 +31,19 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        $user = Auth::user();
+
+        // 2FA gate — only for users who enabled it; everyone else logs in normally.
+        if ($user->two_factor_enabled && $user->two_factor_secret) {
+            Auth::logout();
+            $request->session()->put('2fa:user', $user->id);
+            $request->session()->put('2fa:remember', $request->boolean('remember'));
+
+            return redirect()->route('two-factor.challenge');
+        }
+
         $request->session()->regenerate();
+        \App\Http\Controllers\TwoFactorController::recordLogin($request, $user);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

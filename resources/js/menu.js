@@ -4,6 +4,7 @@
 export const MENU = [
     { label: 'Dashboard', route: 'dashboard', match: 'dashboard', icon: 'dashboard', permission: 'dashboard.menu' },
     { label: 'My Work', route: 'mywork.index', match: 'mywork.*', icon: 'tasks', permission: 'dashboard.menu' },
+    { label: 'Calendar', route: 'calendar.index', match: 'calendar.*', icon: 'calendar', permission: 'dashboard.menu' },
     { label: 'Projects', route: 'projects.index', match: 'projects.*', icon: 'projects', permission: 'projects.menu' },
     { label: 'Tasks', route: 'tasks.index', match: 'tasks.*', icon: 'tasks', permission: 'tasks.menu' },
     { label: 'Timeline', route: 'timeline.index', match: 'timeline.*', icon: 'timeline', permission: 'timeline.menu' },
@@ -24,6 +25,7 @@ export const MENU = [
             { label: 'Departments', route: 'departments.index', match: 'departments.*', icon: 'projects', permission: 'departments.menu' },
             { label: 'Designations', route: 'designations.index', match: 'designations.*', icon: 'milestones', permission: 'designations.menu' },
             { label: 'Mail & Notifications', route: 'notifications.settings', match: 'notifications.settings*', icon: 'bell', permission: 'users.menu' },
+            { label: 'Audit Log', route: 'audit.index', match: 'audit.*', icon: 'timeline', permission: 'users.menu' },
         ],
     },
 ];
