@@ -364,7 +364,7 @@ function WatchersEditor({ task, users }) {
     );
 }
 
-export default function Show({ task, comments, users = [], mentionables = [], canChangeStatus, canModify, canAnswer, canAccept, canLog }) {
+export default function Show({ task, comments, users = [], mentionables = [], activity = [], canChangeStatus, canModify, canAnswer, canAccept, canLog }) {
     const fileRef = useRef();
     const [shareCopied, setShareCopied] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
@@ -665,7 +665,7 @@ export default function Show({ task, comments, users = [], mentionables = [], ca
 
                     {/* Activity tab */}
                     <div className={`p-5 ${tab === 'activity' ? '' : 'hidden'}`}>
-                        <ActivityFeed items={task.activity ?? []} />
+                        <ActivityFeed items={activity} />
                     </div>
                 </Card>
             </div>
