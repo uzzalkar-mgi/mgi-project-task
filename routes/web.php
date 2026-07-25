@@ -11,6 +11,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\MeetingFeatureController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\MyWorkController;
 use App\Http\Controllers\NotificationController;
@@ -104,6 +105,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/meetings/{meeting}/discussion', [MeetingController::class, 'saveDiscussion'])->name('meetings.discussion');
     Route::patch('/meetings/{meeting}/attendance', [MeetingController::class, 'markAttendance'])->name('meetings.attendance');
     Route::delete('/meetings/{meeting}', [MeetingController::class, 'destroy'])->name('meetings.destroy');
+
+    // Meeting features: agenda, submissions, attachments, action items, ics, quick.
+    Route::post('/meetings/quick', [MeetingFeatureController::class, 'quickMeeting'])->name('meetings.quick');
+    Route::get('/meetings/{meeting}/ics', [MeetingFeatureController::class, 'ics'])->name('meetings.ics');
+    Route::post('/meetings/{meeting}/agenda', [MeetingFeatureController::class, 'addAgenda'])->name('meetings.agenda.add');
+    Route::patch('/agenda-items/{item}/toggle', [MeetingFeatureController::class, 'toggleAgenda'])->name('meetings.agenda.toggle');
+    Route::delete('/agenda-items/{item}', [MeetingFeatureController::class, 'deleteAgenda'])->name('meetings.agenda.delete');
+    Route::post('/meetings/{meeting}/submissions', [MeetingFeatureController::class, 'addSubmission'])->name('meetings.submissions.add');
+    Route::delete('/meeting-submissions/{submission}', [MeetingFeatureController::class, 'deleteSubmission'])->name('meetings.submissions.delete');
+    Route::post('/meetings/{meeting}/attachments', [MeetingFeatureController::class, 'addAttachment'])->name('meetings.attachments.add');
+    Route::delete('/meetings/{meeting}/attachments/{attachment}', [MeetingFeatureController::class, 'deleteAttachment'])->name('meetings.attachments.delete');
+    Route::post('/meetings/{meeting}/actions', [MeetingFeatureController::class, 'addAction'])->name('meetings.actions.add');
+    Route::patch('/action-items/{item}/toggle', [MeetingFeatureController::class, 'toggleAction'])->name('meetings.actions.toggle');
+    Route::delete('/action-items/{item}', [MeetingFeatureController::class, 'deleteAction'])->name('meetings.actions.delete');
+    Route::post('/action-items/{item}/convert', [MeetingFeatureController::class, 'convertAction'])->name('meetings.actions.convert');
+    Route::post('/meetings/{meeting}/carry-forward', [MeetingFeatureController::class, 'carryForward'])->name('meetings.actions.carry');
 
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
 

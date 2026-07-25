@@ -3,10 +3,40 @@ import { Icon } from '@/Components/ui/Icon';
 import { SearchInput } from '@/Components/ui/SearchInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 const STATUS_TONE = { scheduled: 'blue', completed: 'green', cancelled: 'red' };
+const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100';
+
+function QuickMeetingModal({ onClose }) {
+    const { data, setData, post, processing, errors } = useForm({ title: '', meeting_date: new Date().toISOString().slice(0, 10), meeting_time: '' });
+    const submit = (e) => { e.preventDefault(); post(route('meetings.quick'), { onSuccess: onClose }); };
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onMouseDown={onClose}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative w-full max-w-md rounded-xl bg-white p-5 shadow-xl" onMouseDown={(e) => e.stopPropagation()}>
+                <h3 className="mb-3 text-sm font-bold text-slate-900">Quick Meeting</h3>
+                <form onSubmit={submit} className="space-y-3">
+                    <div>
+                        <label className="mb-1 block text-sm font-semibold text-slate-700">Title</label>
+                        <input autoFocus className={inputCls} value={data.title} onChange={(e) => setData('title', e.target.value)} placeholder="e.g. Sprint sync" />
+                        {errors.title && <p className="mt-1 text-sm text-rose-500">{errors.title}</p>}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div><label className="mb-1 block text-sm font-semibold text-slate-700">Date</label><input type="date" className={inputCls} value={data.meeting_date} onChange={(e) => setData('meeting_date', e.target.value)} /></div>
+                        <div><label className="mb-1 block text-sm font-semibold text-slate-700">Time</label><input type="time" className={inputCls} value={data.meeting_time} onChange={(e) => setData('meeting_time', e.target.value)} /></div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                        <button type="submit" disabled={processing || !data.title.trim()} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"><Icon name="check" className="h-4 w-4" /> Create</button>
+                        <button type="button" onClick={onClose} className="text-sm font-medium text-slate-500 hover:text-slate-800">Cancel</button>
+                    </div>
+                    <p className="text-xs text-slate-400">Add invitees & agenda on the meeting page after creating.</p>
+                </form>
+            </div>
+        </div>
+    );
+}
 
 function fmt(d) {
     if (!d) return '—';
@@ -16,6 +46,7 @@ function fmt(d) {
 export default function Index({ meetings, canManage }) {
     const { can } = usePermissions();
     const [q, setQ] = useState('');
+    const [quickOpen, setQuickOpen] = useState(false);
     const filtered = meetings.filter((m) => m.title.toLowerCase().includes(q.toLowerCase()));
     const remove = (m) => { if (confirm(`Delete "${m.title}"?`)) router.delete(route('meetings.destroy', m.uuid), { preserveScroll: true }); };
 
@@ -30,6 +61,9 @@ export default function Index({ meetings, canManage }) {
                             <Link href={route('meetings.settings')} className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
                                 <Icon name="gear" className="h-4 w-4" /> Schedule
                             </Link>
+                            <button onClick={() => setQuickOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-100">
+                                <Icon name="plus" className="h-4 w-4" /> Quick Meeting
+                            </button>
                             <Link href={route('meetings.create')} className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
                                 <Icon name="calendar" className="h-4 w-4" /> New Meeting
                             </Link>
@@ -79,6 +113,8 @@ export default function Index({ meetings, canManage }) {
                     </table>
                 </div>
             </Card>
+
+            {quickOpen && <QuickMeetingModal onClose={() => setQuickOpen(false)} />}
         </AuthenticatedLayout>
     );
 }

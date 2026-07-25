@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Meeting extends Model
@@ -48,6 +49,26 @@ class Meeting extends Model
     public function attendees(): BelongsToMany
     {
         return $this->invitees()->wherePivot('attended', true);
+    }
+
+    public function agendaItems(): HasMany
+    {
+        return $this->hasMany(MeetingAgendaItem::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(MeetingSubmission::class)->latest();
+    }
+
+    public function actionItems(): HasMany
+    {
+        return $this->hasMany(MeetingActionItem::class);
+    }
+
+    public function attachments(): BelongsToMany
+    {
+        return $this->belongsToMany(Attachment::class, 'meeting_attachments')->withTimestamps();
     }
 
     /** The Saturday before the meeting — when the reminder should go out. */

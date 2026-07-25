@@ -115,7 +115,13 @@ class MeetingController extends Controller
     {
         $this->authorize('permission', 'meetings.view');
 
-        $meeting->load(['creator:id,name', 'invitees:id,name,employee_id']);
+        $meeting->load([
+            'creator:id,name', 'invitees:id,name,employee_id',
+            'agendaItems.owner:id,name',
+            'submissions.author:id,name',
+            'attachments',
+            'actionItems.assignee:id,name', 'actionItems.task:id,uuid',
+        ]);
 
         return Inertia::render('Meetings/Show', [
             'meeting' => [
@@ -135,7 +141,25 @@ class MeetingController extends Controller
                     'attended'    => (bool) $u->pivot->attended,
                     'attended_at' => $u->pivot->attended_at,
                 ]),
+                'agenda'        => $meeting->agendaItems->map(fn ($a) => [
+                    'id' => $a->id, 'title' => $a->title, 'owner' => $a->owner?->name,
+                    'minutes' => $a->minutes, 'done' => $a->done,
+                ]),
+                'submissions'   => $meeting->submissions->map(fn ($s) => [
+                    'id' => $s->id, 'body' => $s->body, 'author' => $s->author?->name,
+                    'at' => $s->created_at?->diffForHumans(), 'user_id' => $s->user_id,
+                ]),
+                'attachments'   => $meeting->attachments->map(fn ($a) => [
+                    'id' => $a->id, 'title' => $a->title, 'url' => route('attachments.show', $a->id), 'file_type' => $a->file_type,
+                ]),
+                'actions'       => $meeting->actionItems->map(fn ($a) => [
+                    'id' => $a->id, 'title' => $a->title, 'assignee' => $a->assignee?->name,
+                    'due_date' => $a->due_date?->toDateString(), 'status' => $a->status,
+                    'task_uuid' => $a->task?->uuid, 'carried' => (bool) $a->carried_from_meeting_id,
+                ]),
             ],
+            'users'         => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
+            'projects'      => \App\Models\Project::orderBy('name')->get(['id', 'name']),
             'canManage'     => request()->user()->hasPermission('meetings.update'),
             'canAttendance' => request()->user()->hasPermission('meetings.attendance'),
         ]);
