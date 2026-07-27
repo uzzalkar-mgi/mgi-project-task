@@ -9,6 +9,7 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
+use App\Http\Controllers\ImageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MeetingFeatureController;
@@ -39,6 +40,9 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 // Public, read-only task view — shareable link (by task number), no login required.
 Route::get('/shared/tasks/{task:task_no}', [TaskController::class, 'publicShow'])->name('tasks.public');
+
+// Public media proxy — streams private GCS objects through the app.
+Route::get('/media/{path}', [ImageController::class, 'show'])->where('path', '.*')->name('media.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/search', [SearchController::class, 'index'])->name('search');

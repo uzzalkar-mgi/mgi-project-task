@@ -29,6 +29,29 @@ class ImageController extends Controller
         return response()->json(['success' => true, ...$result], 201);
     }
 
+    /**
+     * Stream a GCS object through the app (bucket stays private).
+     * Path from the route param (/media/{path}) OR ?path= query (/api/show?path=…).
+     */
+    public function show(Request $request, ?string $path = null)
+    {
+        $path = $path ?: $request->query('path');
+        if (! $path) {
+            abort(400, 'path is required');
+        }
+
+        try {
+            $obj = $this->images->get($path);
+        } catch (\Throwable $e) {
+            abort(404);
+        }
+
+        return response($obj['body'], 200, [
+            'Content-Type'  => $obj['type'],
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
+    }
+
     /** DELETE /api/images — body: path. */
     public function destroy(Request $request): JsonResponse
     {

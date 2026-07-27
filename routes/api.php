@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 // (or a token guard) before exposing in production.
 Route::post('/images/upload', [ImageController::class, 'upload'])->name('api.images.upload');
 Route::delete('/images', [ImageController::class, 'destroy'])->name('api.images.destroy');
+Route::get('/images/show', [ImageController::class, 'show'])->name('api.images.show');
 
 // Token-authenticated API (personal access tokens created in Profile → API Access).
 // Send header: Authorization: Bearer <token>

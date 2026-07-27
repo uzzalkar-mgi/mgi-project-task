@@ -63,7 +63,8 @@ class ImageService
 
         return [
             'path' => $path,
-            'url'  => $this->url($path),
+            'url'  => $this->proxyUrl($path),
+            'gcs'  => $this->url($path),
             'name' => $file->getClientOriginalName(),
             'size' => $file->getSize(),
         ];
@@ -111,12 +112,18 @@ class ImageService
         }
     }
 
-    /** Permanent public URL — only reachable if the bucket grants allUsers objectViewer. */
+    /** Direct GCS URL — only reachable if the bucket grants allUsers objectViewer. */
     public function url(string $path): string
     {
         $base = rtrim($this->cfg['endpoint'] ?? 'https://storage.googleapis.com', '/');
 
         return $base.'/'.$this->cfg['bucket'].'/'.$this->key($path);
+    }
+
+    /** App-proxied URL — always works (server streams the object), bucket can stay private. */
+    public function proxyUrl(string $path): string
+    {
+        return url('media/'.ltrim($path, '/'));
     }
 
     /** Signed, time-limited URL — works even on a private bucket. */
@@ -133,6 +140,24 @@ class ImageService
     public function exists(string $path): bool
     {
         return $this->client()->doesObjectExist($this->cfg['bucket'], $this->key($path));
+    }
+
+    /**
+     * Fetch object bytes + content-type via server credentials (for proxying).
+     *
+     * @return array{body: string, type: string}
+     */
+    public function get(string $path): array
+    {
+        $r = $this->client()->getObject([
+            'Bucket' => $this->cfg['bucket'],
+            'Key'    => $this->key($path),
+        ]);
+
+        return [
+            'body' => (string) $r['Body'],
+            'type' => $r['ContentType'] ?? 'application/octet-stream',
+        ];
     }
 
     public function delete(string $path): bool
