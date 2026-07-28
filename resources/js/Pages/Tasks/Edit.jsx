@@ -3,7 +3,7 @@ import { Icon } from '@/Components/ui/Icon';
 import { Combobox, MultiCombobox } from '@/Components/ui/Combobox';
 import { RichTextEditor } from '@/Components/ui/RichTextEditor';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 
 function Field({ label, required, error, children }) {
     return (
@@ -122,6 +122,24 @@ export default function Edit({ task, projects, users, parentTasks = [] }) {
                         </Field>
                     </div>
                     <p className="mt-2 text-xs text-slate-400">Watchers get task reminder &amp; overdue notifications but aren't responsible for it.</p>
+                </Card>
+
+                <Card className="p-5">
+                    <SectionTitle>Attachments ({(task.attachments ?? []).length})</SectionTitle>
+                    {(task.attachments ?? []).length > 0 && (
+                        <ul className="mb-3 space-y-1.5">
+                            {task.attachments.map((a) => (
+                                <li key={a.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-1.5 text-sm">
+                                    <a href={a.url} target="_blank" rel="noreferrer" className="min-w-0 truncate text-slate-700 hover:text-brand-700">📎 {a.title}</a>
+                                    <button type="button" onClick={() => router.delete(route('tasks.attachments.delete', [task.uuid, a.id]), { preserveScroll: true })} className="text-xs text-rose-400 hover:text-rose-600">Remove</button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-brand-400 hover:bg-slate-50">
+                        <Icon name="plus" className="h-4 w-4" /> Add a file
+                        <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) router.post(route('tasks.attachments.store', task.uuid), { file: f }, { forceFormData: true, preserveScroll: true, onError: (er) => alert(er.file ?? 'Upload failed.') }); }} />
+                    </label>
                 </Card>
 
                 <div className="flex items-center gap-3">

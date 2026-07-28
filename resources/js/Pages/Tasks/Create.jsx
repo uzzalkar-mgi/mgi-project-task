@@ -47,11 +47,12 @@ export default function Create({ projects, users, parentTasks = [] }) {
         estimated_hours: '',
         assignee_ids: [],
         watcher_ids: [],
+        attachments: [],
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post(route('tasks.store'));
+        post(route('tasks.store'), { forceFormData: true });
     };
 
     const projectOpts = projects.map((p) => ({ value: p.id, label: p.name }));
@@ -134,6 +135,25 @@ export default function Create({ projects, users, parentTasks = [] }) {
                         </Field>
                     </div>
                     <p className="mt-2 text-xs text-slate-400">Watchers get task reminder &amp; overdue notifications but aren't responsible for it.</p>
+                </Card>
+
+                <Card className="p-5">
+                    <SectionTitle>Attachments</SectionTitle>
+                    <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-brand-400 hover:bg-slate-50">
+                        <Icon name="plus" className="h-4 w-4" /> Choose files (images, PDF, docs…)
+                        <input type="file" multiple className="hidden" onChange={(e) => setData('attachments', [...data.attachments, ...Array.from(e.target.files ?? [])])} />
+                    </label>
+                    {errors['attachments.0'] && <p className="mt-1 text-sm text-rose-500">{errors['attachments.0']}</p>}
+                    {data.attachments.length > 0 && (
+                        <ul className="mt-3 space-y-1.5">
+                            {data.attachments.map((f, i) => (
+                                <li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-slate-100 px-3 py-1.5 text-sm">
+                                    <span className="min-w-0 truncate text-slate-700">📎 {f.name} <span className="text-xs text-slate-400">({Math.round(f.size / 1024)} KB)</span></span>
+                                    <button type="button" onClick={() => setData('attachments', data.attachments.filter((_, j) => j !== i))} className="text-xs text-rose-400 hover:text-rose-600">✕</button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </Card>
 
                 <div className="flex items-center gap-3">

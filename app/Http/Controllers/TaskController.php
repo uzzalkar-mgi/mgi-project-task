@@ -143,6 +143,8 @@ class TaskController extends Controller
             'assignee_ids.*'  => ['exists:users,id'],
             'watcher_ids'     => ['array'],
             'watcher_ids.*'   => ['exists:users,id'],
+            'attachments'     => ['array', 'max:8'],
+            'attachments.*'   => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp,gif,pdf,doc,docx,xls,xlsx,csv,txt,zip,ppt,pptx'],
         ], [
             'assignee_ids.required' => 'Assign the task to at least one member.',
             'assignee_ids.min'      => 'Assign the task to at least one member.',
@@ -152,12 +154,13 @@ class TaskController extends Controller
         abort_unless($this->canViewAll($request->user()) || $this->visibleProjects($request->user())->whereKey($data['project_id'])->exists(), 403);
 
         $task = Task::create([
-            ...collect($data)->except(['assignee_ids', 'watcher_ids'])->all(),
+            ...collect($data)->except(['assignee_ids', 'watcher_ids', 'attachments'])->all(),
             'reporter_id' => $request->user()->id,
         ]);
 
         $task->assignees()->sync($data['assignee_ids'] ?? []);
         $task->watchers()->sync($data['watcher_ids'] ?? []);
+        $this->storeTaskAttachments($request, $task);
 
         TaskNotifier::notify($task, 'created', $request->user());
         Activity::record($task, 'created', 'created this task');
@@ -168,7 +171,7 @@ class TaskController extends Controller
     public function edit(Request $request, Task $task): Response
     {
         $user = $request->user();
-        $task->loadMissing(['assignees:id', 'watchers:id']);
+        $task->loadMissing(['assignees:id', 'watchers:id', 'attachments']);
         abort_unless($this->canAccessTask($user, $task) && $this->canModify($user, $task), 403);
 
         $projectIds = $this->formProjects($user)->pluck('id');
@@ -188,6 +191,9 @@ class TaskController extends Controller
                 'estimated_hours' => $task->estimated_hours,
                 'assignee_ids'    => $task->assignees->pluck('id'),
                 'watcher_ids'     => $task->watchers->pluck('id'),
+                'attachments'     => $task->attachments->map(fn ($a) => [
+                    'id' => $a->id, 'title' => $a->title, 'url' => route('attachments.show', $a->id), 'file_type' => $a->file_type,
+                ]),
             ],
             'projects' => $this->formProjects($user)->get(['id', 'name']),
             'users'    => User::active()->orderBy('name')->get(['id', 'name', 'employee_id']),
@@ -554,6 +560,34 @@ class TaskController extends Controller
         }
 
         return back()->with('status', 'Attachment uploaded.');
+    }
+
+    /** Store multiple attachments sent with the create/update form. */
+    private function storeTaskAttachments(Request $request, Task $task): void
+    {
+        foreach ($request->file('attachments', []) as $file) {
+            $path = $file->store('task-attachments', 'public');
+            $attachment = Attachment::create([
+                'title'       => $file->getClientOriginalName(),
+                'url'         => Storage::disk('public')->url($path),
+                'size'        => $file->getSize(),
+                'file_type'   => $file->getMimeType(),
+                'type'        => 'task',
+                'uploaded_by' => $request->user()->id,
+                'status'      => 1,
+            ]);
+            $task->attachments()->attach($attachment->id);
+        }
+    }
+
+    /** Detach an attachment from a task. */
+    public function deleteAttachment(Request $request, Task $task, Attachment $attachment): RedirectResponse
+    {
+        $task->loadMissing('assignees:id');
+        abort_unless($this->canAccessTask($request->user(), $task) && $this->canModify($request->user(), $task), 403);
+        $task->attachments()->detach($attachment->id);
+
+        return back()->with('status', 'Attachment removed.');
     }
 }
 
