@@ -63,7 +63,7 @@ class UserController extends Controller
             'roles:id,name', 'department:id,name', 'designation:id,name',
             'ledProjects:id,uuid,name,status,priority,end_date',
             'projects:id,uuid,name,status',
-            'tasks' => fn ($q) => $q->with(['project:id,name', 'reporter:id,uuid,name'])->orderBy('due_date'),
+            'tasks' => fn ($q) => $q->with(['project:id,name', 'creator:id,uuid,name'])->orderBy('due_date'),
         ]);
 
         return Inertia::render('Users/Show', [
@@ -88,11 +88,11 @@ class UserController extends Controller
             'tasks' => $user->tasks->map(fn ($t) => [
                 'uuid' => $t->uuid, 'title' => $t->title, 'project' => $t->project?->name,
                 'status' => $t->status, 'priority' => $t->priority, 'due_date' => $t->due_date?->toDateString(),
-                'created_by' => $t->reporter?->name,
-                'created_by_uuid' => $t->reporter?->uuid,
+                'created_by' => $t->creator?->name,
+                'created_by_uuid' => $t->creator?->uuid,
             ]),
             // Tasks this user CREATED (reporter), grouped by project.
-            'createdTasks' => \App\Models\Task::where('reporter_id', $user->id)
+            'createdTasks' => \App\Models\Task::where('created_by', $user->id)
                 ->with('project:id,uuid,name')
                 ->orderBy('due_date')
                 ->get()

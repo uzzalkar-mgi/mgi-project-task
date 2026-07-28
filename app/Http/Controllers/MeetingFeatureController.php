@@ -155,6 +155,7 @@ class MeetingFeatureController extends Controller
             'title'       => $item->title,
             'description' => '<p>From meeting action item.</p>',
             'reporter_id' => $request->user()->id,
+            'created_by'  => $request->user()->id,
             'start_date'  => now()->toDateString(),
             'due_date'    => $data['due_date'],
             'priority'    => 'normal',

@@ -44,7 +44,7 @@ class Task extends Model
     }
 
     protected $fillable = [
-        'project_id', 'parent_task_id', 'title', 'description', 'reporter_id',
+        'project_id', 'parent_task_id', 'title', 'description', 'reporter_id', 'created_by',
         'start_date', 'due_date', 'priority', 'status', 'platform', 'estimated_hours',
         'status_updated_by', 'status_updated_at',
     ];
@@ -80,6 +80,12 @@ class Task extends Model
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reporter_id');
+    }
+
+    /** The logged-in user who created the task. */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function parent(): BelongsTo

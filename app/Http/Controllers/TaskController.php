@@ -156,6 +156,7 @@ class TaskController extends Controller
         $task = Task::create([
             ...collect($data)->except(['assignee_ids', 'watcher_ids', 'attachments'])->all(),
             'reporter_id' => $request->user()->id,
+            'created_by'  => $request->user()->id,
         ]);
 
         $task->assignees()->sync($data['assignee_ids'] ?? []);
@@ -264,6 +265,7 @@ class TaskController extends Controller
             'assignees:id,name',
             'watchers:id,name',
             'reporter:id,name',
+            'creator:id,uuid,name',
             'attachments',
             'parent:id,uuid,title',
             'subtasks:id,uuid,title,status,due_date,parent_task_id',
@@ -286,6 +288,8 @@ class TaskController extends Controller
                 'project'     => $task->project?->name,
                 'project_uuid' => $task->project?->uuid,
                 'reporter'    => $task->reporter?->name,
+                'created_by'  => $task->creator?->name,
+                'created_by_uuid' => $task->creator?->uuid,
                 'assignees'   => $task->assignees->pluck('name'),
                 'watchers'    => $task->watchers->map(fn ($w) => ['id' => $w->id, 'name' => $w->name]),
                 'watcher_ids' => $task->watchers->pluck('id'),

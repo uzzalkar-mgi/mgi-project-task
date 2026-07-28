@@ -512,6 +512,12 @@ export default function Show({ task, comments, users = [], mentionables = [], ac
                             <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Reporter</span>
                             <span className="font-medium text-slate-700">{task.reporter ?? '—'}</span>
                         </div>
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Created by</span>
+                            {task.created_by_uuid
+                                ? <Link href={route('users.show', task.created_by_uuid)} className="font-medium text-brand-600 hover:underline">{task.created_by}</Link>
+                                : <span className="font-medium text-slate-700">{task.created_by ?? '—'}</span>}
+                        </div>
                     </div>
 
                     {/* Dates */}

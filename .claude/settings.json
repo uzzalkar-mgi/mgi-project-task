@@ -49,7 +49,8 @@
       "Bash(Select-String \"2fa|DONE|FAIL\")",
       "Bash(php -r \"echo extension_loaded\\('gd'\\)?'GD:yes':'GD:no';echo PHP_EOL;\")",
       "Bash(mkdir -p public/icons)",
-      "Bash(awk '{print $NF, $5\"b\"}')"
+      "Bash(awk '{print $NF, $5\"b\"}')",
+      "Bash(grep -rn 'where\\('\\\\''reporter_id'\\\\'', $user->id\\)' app/Http/Controllers/UserController.php app/Http/Controllers/ProfileController.php)"
     ],
     "additionalDirectories": [
       "D:\\laragon\\www\\mgi-project-task\\storage\\framework\\views"
