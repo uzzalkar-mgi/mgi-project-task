@@ -55,9 +55,11 @@ class TaskController extends Controller
     {
         $user = $request->user();
 
-        // Managers/admins/super see all tasks; everyone else only their assigned tasks.
+        // Managers/admins/super see all tasks; everyone else sees tasks assigned to them OR created by them.
         $tasks = Task::query()
-            ->when(! $this->canViewAll($user), fn ($q) => $q->whereHas('assignees', fn ($a) => $a->where('users.id', $user->id)))
+            ->when(! $this->canViewAll($user), fn ($q) => $q->where(fn ($w) => $w
+                ->whereHas('assignees', fn ($a) => $a->where('users.id', $user->id))
+                ->orWhere('created_by', $user->id)))
             ->with(['project:id,uuid,name', 'assignees:id,name'])
             ->withCount('attachments', 'comments')
             ->orderByRaw('due_date is null, due_date asc')
